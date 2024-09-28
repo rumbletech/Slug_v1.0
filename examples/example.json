@@ -1,0 +1,28 @@
+{
+    "serial_communication": {
+        "protocol_type": "UART",
+        "parameters": {
+            "baud_rate": 9600,
+            "data_bits": 8,
+            "stop_bits": 1,
+            "parity": "None",
+            "flow_control": "None"
+        }
+    },
+    "spi_communication": {
+        "protocol_type": "SPI",
+        "parameters": {
+            "clock_speed_hz": 1000000,
+            "data_mode": 0,
+            "bit_order": "MSB_FIRST",
+            "chip_select": 0
+        }
+    },
+    "i2c_communication": {
+        "protocol_type": "I2C",
+        "parameters": {
+            "clock_speed_hz": 400000,
+            "slave_address": 72
+        }
+    }
+}
