@@ -41,7 +41,7 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-
+extern uint8_t errh_code;
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/

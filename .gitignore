@@ -1,3 +1,6 @@
+#ioc
+*.bak
+
 # Prerequisites
 *.d
 
