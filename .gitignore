@@ -1,5 +1,10 @@
 #ioc
 *.bak
+*.cyclo
+*.mk
+
+# Directories
+cube/Debug/
 
 # Prerequisites
 *.d
@@ -9,6 +14,7 @@
 *.ko
 *.obj
 *.elf
+*.list
 
 # Linker output
 *.ilk

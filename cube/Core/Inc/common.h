@@ -14,6 +14,7 @@
 
 
 #if defined(_OPTS_DEBUG_EN) && _OPTS_DEBUG_EN == true
+#include "debug.h"
 #define Common_Printf(...) Debug_Printf(__VA_ARGS__)
 #else
 #define Common_Printf(...) (_UNUSED_(0u))
