@@ -31,6 +31,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "GPIO.h"
 
 /* USER CODE END Includes */
 
@@ -42,6 +43,7 @@ extern "C" {
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
 extern uint8_t errh_code;
+extern GPIO_HandleTypeDef gpio_SPI1_CS;
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/

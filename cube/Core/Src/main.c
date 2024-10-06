@@ -18,10 +18,12 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "fatfs.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "common.h"
+#include "SDCD.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -91,7 +93,6 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -99,17 +100,26 @@ int main(void)
   MX_RTC_Init();
   MX_USART1_UART_Init();
   MX_SPI1_Init();
+  MX_FATFS_Init();
   /* USER CODE BEGIN 2 */
 #if defined(_OPTS_DEBUG_EN) && _OPTS_DEBUG_EN == true
   Debug_Init(&huart1);
 #endif
+  SDCD_Init(&hspi1,&gpio_SPI1_CS);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  FATFS fs;
+  FRESULT res;
+
+  if(res != FR_OK) {
+	  Common_Printf("f_mount() failed, res = %d\r\n", res);
+  }
+
   while (1)
   {
-	  Common_Printf("yolo Nigger %d\r\n" , 3);
+	  Common_Printf("yolo %d\r\n" , 3);
 	  HAL_Delay(1000);
     /* USER CODE END WHILE */
 
