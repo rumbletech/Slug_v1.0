@@ -113,13 +113,18 @@ int main(void)
   FATFS fs;
   FRESULT res;
 
+  res = f_mount(&fs, "", 1);
+
   if(res != FR_OK) {
 	  Common_Printf("f_mount() failed, res = %d\r\n", res);
+  }else{
+	  Common_Printf("f_mount() success");
   }
+
+  Common_Printf("YOLOOOO !! End \r\n");
 
   while (1)
   {
-	  Common_Printf("yolo %d\r\n" , 3);
 	  HAL_Delay(1000);
     /* USER CODE END WHILE */
 
@@ -229,7 +234,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_HARD_OUTPUT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_128;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;

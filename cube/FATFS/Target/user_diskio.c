@@ -32,6 +32,7 @@
 
 /* USER CODE BEGIN DECL */
 
+#include "common.h"
 /* Includes ------------------------------------------------------------------*/
 #include <string.h>
 #include "ff_gen_drv.h"
@@ -81,7 +82,8 @@ DSTATUS USER_initialize (
 )
 {
   /* USER CODE BEGIN INIT */
-    Stat = STA_NOINIT;
+    Stat = SD_disk_init(pdrv);
+    Common_Printf("stat = %d\r\n",Stat);
     return Stat;
   /* USER CODE END INIT */
 }

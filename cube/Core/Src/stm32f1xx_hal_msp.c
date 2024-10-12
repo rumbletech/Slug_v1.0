@@ -159,16 +159,16 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-
     GPIO_InitStruct.Pin = GPIO_PIN_6;
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /* USER CODE BEGIN SPI1_MspInit 1 */
 
     gpio_SPI1_CS.pinData.Pin = GPIO_PIN_4;
     gpio_SPI1_CS.pinData.Mode = GPIO_MODE_OUTPUT_PP;
+    gpio_SPI1_CS.pinData.Pull = GPIO_NOPULL;
     gpio_SPI1_CS.pinData.Speed = GPIO_SPEED_FREQ_HIGH;
     gpio_SPI1_CS.port = GPIOA;
     gpio_SPI1_CS.pinNum = 4u;
