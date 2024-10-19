@@ -213,17 +213,13 @@ static inline uint8_t SD_CheckPower(void){
 
 static bool SD_PowerOn(){
 
-	uint8_t dummyBytes[10u] = { 0xFF };
+	uint8_t dummyBytes[8u] = { 0xFF };
 	uint8_t res = 0u;
 	_sdcd_err err = SDCD_SUCCESS;
 
 	if ( sdcd.pwrf == true ) {
 		goto SD_PowerOn_exit_;
 	}
-
-	CS_Disable();
-	HAL_Delay(500);
-	CS_Enable();
 
 	CS_Disable();
 
@@ -286,7 +282,7 @@ DSTATUS SD_disk_init(BYTE drv)
 	err = SPI_Rx(&OCR[0], sizeof(OCR));
 
 	for ( int i = 0 ; i < 4 ; i++ ){
-		Common_Printf("OCR[%d] = %d \r\n", i , OCR[i]);
+		Common_Printf("OCR[%d] = %x \r\n", i , OCR[i]);
 	}
 
 	if ( err != SDCD_SUCCESS ){
@@ -298,25 +294,22 @@ DSTATUS SD_disk_init(BYTE drv)
 		OCR[3] == 0xAA ){
 		Common_Printf("V2HC,V2SC\r\n");
 
-		err = SD_SendCmd(APP_CMD, 0 , &res);
+		do {
+			err = SD_SendCmd(APP_CMD, 0 , &res);
 
-		if ( err != SDCD_SUCCESS ){
-			goto SD_disk_init_exit;
+			if ( err != SDCD_SUCCESS ){
+				goto SD_disk_init_exit;
+			}
+
+			err = SD_SendCmd(APP_SEND_OP_COND,0x40000000 , &res);
+
+			if ( err != SDCD_SUCCESS ){
+				goto SD_disk_init_exit;
+			}
 		}
+		while( res != 0u );
 
-		if ( res > 1u ){
-			goto SD_disk_init_exit;
-		}
 
-		err = SD_SendCmd(APP_SEND_OP_COND,0x40000000 , &res);
-
-		if ( err != SDCD_SUCCESS ){
-			goto SD_disk_init_exit;
-		}
-
-		if ( res > 1u ){
-			goto SD_disk_init_exit;
-		}
 
 		err = SD_SendCmd(READ_OCR,0,&res);
 
@@ -324,21 +317,23 @@ DSTATUS SD_disk_init(BYTE drv)
 			goto SD_disk_init_exit;
 		}
 
+		err = SPI_Rx(OCR, sizeof(OCR));
 
-		if ( res != 1u ){
-			goto SD_disk_init_exit;
+		for ( int i = 0 ; i < 4 ; i++ ){
+			Common_Printf("OCR[%d] = %x \r\n", i , OCR[i]);
 		}
 
-		err = SPI_Rx(OCR, sizeof(OCR));
 
 		if ( err != SDCD_SUCCESS ){
 			goto SD_disk_init_exit;
 		}
 
 		if(OCR[0u]==0x40){
+			Common_Printf("HC\r\n");
 			sdcd.mType = SD_V2HC;
 		}
 		else{
+			Common_Printf("SC\r\n");
 			sdcd.mType = SD_V2SC;
 		}
 	}
@@ -443,34 +438,40 @@ static bool SD_RxDataBlock(BYTE *buff, uint32_t len){
 	uint8_t crc[2u];
 	/* timeout 200ms */
 	uint16_t timeOut = 200;
-	uint16_t res = 0u;
+	uint8_t res = 0u;
 	uint32_t elapsedTicks;
 	uint32_t currentTicks = HAL_GetTick();
+	_sdcd_err err = SDCD_SUCCESS;
 
 	/* loop until receive a response or timeout */
 	do {
-		res = SPI_RxByte();
-		if ( _SDCD_GET_STAT_(res) != SDCD_SUCCESS ){
-			return false;
-		}
+		err = SPI_Rx(&res, 1u);
 		elapsedTicks = HAL_GetTick()-currentTicks;
-	} while((_SDCD_GET_RESP_(res) != 0xFE) &&
+	} while( ( res != 0xFE) &&
 			(elapsedTicks < timeOut));
 
+	Common_Printf("res = %x \r\n" , res);
 
 	if ( elapsedTicks >= timeOut ){
+		Common_Printf("YEEAH BUDDY1\r\n");
 		return false;
 	}
 
-	res = SPI_RxBuff_LI(buff, len);
-	if ( _SDCD_GET_STAT_(res) != SDCD_SUCCESS ){
+	err = SPI_Rx(buff, len);
+
+	if ( err != SDCD_SUCCESS ){
+		Common_Printf("YEEAH BUDDY2\r\n");
+
 		return false;
 	}
 
-	res = SPI_RxBuff_LI(crc, sizeof(crc));
-	if ( _SDCD_GET_STAT_(res) != SDCD_SUCCESS ){
+	err = SPI_Rx(crc, sizeof(crc));
+	if ( err != SDCD_SUCCESS ){
+		Common_Printf("YEEAH BUDDY3\r\n");
 		return false;
 	}
+
+	Common_Printf("YEEAH BUDDY4\r\n");
 
 
 	return true;
@@ -536,53 +537,82 @@ DRESULT SD_disk_write(BYTE pdrv, const BYTE* buff, DWORD sector, UINT count){
 
 DRESULT SD_disk_read(BYTE pdrv, BYTE* buff, DWORD sector, UINT count){
 
-//	Common_Printf("pdrv = %d , sector = %d , count = %d \r\n" , pdrv, sector, count);
-//	/* pdrv should be 0 */
-//	if (pdrv || !count){
-//		return RES_PARERR;
-//	}
-//
-//	/* no disk */
-//	if (sdcd.mStat & STA_NOINIT){
-//		return RES_NOTRDY;
-//	}
-//
-//	/* convert to byte address */
-//	if (sdcd.mType == SD_V2SC){
-//		sector *= 512;
-//	}
-//
-//	CS_Enable();
-//
-//	if (count == 1)
-//	{
-//		/* READ_SINGLE_BLOCK */
-//		if ((SD_SendCmd(READ_SINGLE_BLOCK, sector) == 0) && SD_RxDataBlock(buff, 512)){
-//			count = 0;
-//		}
-//	}
-//	else
-//	{
-//		/* READ_MULTIPLE_BLOCK */
-//		if (SD_SendCmd(READ_MULTIPLE_BLOCK, sector) == 0)
-//		{
-//			do {
-//				if (!SD_RxDataBlock(buff, 512)){
-//					break;
-//				}
-//				buff += 512;
-//			} while (--count);
-//
-//			/* STOP_TRANSMISSION */
-//			SD_SendCmd(STOP_TRANSMISSION, 0);
-//		}
-//	}
-//
-//	/* Idle */
-//	CS_Disable();
-//	SPI_RxByte();
-//
-//	return count ? RES_ERROR : RES_OK;
+	_sdcd_err err = SDCD_SUCCESS;
+	uint8_t res = 0u;
+
+	Common_Printf("pdrv = %d , sector = %d , count = %d \r\n" , pdrv, sector, count);
+	/* pdrv should be 0 */
+	if (pdrv || !count){
+		return RES_PARERR;
+	}
+
+	/* no disk */
+	if (sdcd.mStat & STA_NOINIT){
+		return RES_NOTRDY;
+	}
+
+	/* convert to byte address */
+	if (sdcd.mType == SD_V2SC){
+		sector *= 512;
+	}
+
+	uint8_t dum = 0xFF;
+	SPI_Tx(&dum,1u);
+
+	SPI_Tx(&dum,1u);
+
+	SPI_Tx(&dum,1u);
+
+
+	CS_Enable();
+
+	SPI_Tx(&dum,1u);
+
+
+	if (count == 1u)
+	{
+		err = SD_SendCmd(READ_SINGLE_BLOCK, sector,&res);
+
+		if ( err != SDCD_SUCCESS || res != 0u ){
+			Common_Printf("READ_SINGLE_BLOCK Fail\r\n");
+			goto SD_disk_read_exit;
+		}
+
+		if ( SD_RxDataBlock(buff, 512) ) {
+			count--;
+		}
+	}
+	else
+	{
+		err = SD_SendCmd(READ_MULTIPLE_BLOCK, sector,&res);
+
+		if ( err != SDCD_SUCCESS || res != 0u ){
+			goto SD_disk_read_exit;
+		}
+
+		do {
+			if (!SD_RxDataBlock(buff, 512)){
+				break;
+			}
+			buff += 512;
+		} while (--count);
+
+		/* STOP_TRANSMISSION */
+		err = SD_SendCmd(STOP_TRANSMISSION, 0 , &res);
+
+		if ( err != SDCD_SUCCESS ){
+			goto SD_disk_read_exit;
+		}
+
+	}
+
+SD_disk_read_exit:
+	/* Idle */
+	CS_Disable();
+
+	SPI_Rx(&res, 1u);
+
+	return count ? RES_ERROR : RES_OK;
 }
 
 

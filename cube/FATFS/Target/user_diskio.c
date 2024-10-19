@@ -83,7 +83,7 @@ DSTATUS USER_initialize (
 {
   /* USER CODE BEGIN INIT */
     Stat = SD_disk_init(pdrv);
-    Common_Printf("stat = %d\r\n",Stat);
+    Common_Printf("SD_disk_init Stat = %d\r\n",Stat);
     return Stat;
   /* USER CODE END INIT */
 }
@@ -99,6 +99,7 @@ DSTATUS USER_status (
 {
   /* USER CODE BEGIN STATUS */
     Stat = STA_NOINIT;
+    Common_Printf("SD_disk_status Stat \r\n");
     return Stat;
   /* USER CODE END STATUS */
 }
@@ -119,7 +120,9 @@ DRESULT USER_read (
 )
 {
   /* USER CODE BEGIN READ */
-    return RES_OK;
+	Stat = SD_disk_read(pdrv, buff, sector, count);
+    Common_Printf("SD_disk_read Stat = %d\r\n",Stat);
+    return Stat;
   /* USER CODE END READ */
 }
 
@@ -141,6 +144,8 @@ DRESULT USER_write (
 {
   /* USER CODE BEGIN WRITE */
   /* USER CODE HERE */
+    Common_Printf("SD_disk_Write Stat \r\n");
+
     return RES_OK;
   /* USER CODE END WRITE */
 }
@@ -162,6 +167,7 @@ DRESULT USER_ioctl (
 {
   /* USER CODE BEGIN IOCTL */
     DRESULT res = RES_ERROR;
+    Common_Printf("SD_disk_ioctl Stat \r\n");
     return res;
   /* USER CODE END IOCTL */
 }
