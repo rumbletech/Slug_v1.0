@@ -126,9 +126,9 @@ int main(void)
   Common_Printf("YOLOOOO !! End \r\n");
   uint8_t sec[512u];
   uint32_t test = 0u;
-  for ( int i = 0 ; i < 16777216  ; i++ ){
+  for ( int i = 0 ; i < 16777  ; i++ ){
 	  HAL_Delay(1000);
-	  test += (uint32_t)SD_disk_read(0, &sec, i , 1);
+	  test += (uint32_t)SD_disk_read(0, &sec, i+8192 , 1);
 	  Common_Printf("Sector %d = \r\n" , i);
   }
   while (1)

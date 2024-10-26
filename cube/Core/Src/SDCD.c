@@ -114,14 +114,6 @@ uint16_t crc16_ccitt(const uint8_t* buffer, size_t size)
 
 
 extern volatile uint16_t Timer1;
-static inline void CS_Enable(){
-	HAL_GPIO_WritePin(sdcd.spi_cs->port, 1u << sdcd.spi_cs->pinNum, GPIO_PIN_RESET);
-}
-
-static inline void CS_Disable(){
-	HAL_GPIO_WritePin(sdcd.spi_cs->port, 1u << sdcd.spi_cs->pinNum, GPIO_PIN_SET);
-	HAL_Delay(1);
-}
 
 void SDCD_Init (SPI_HandleTypeDef* spi_d ,  GPIO_HandleTypeDef* gpiod ){
 
@@ -146,83 +138,6 @@ static uint8_t get_CRC(enum memd_cmd  cmd_idx){
 	else return 1;
 
 }
-
-static void SPI_TxByte(uint8_t data)
-{
-	while(!__HAL_SPI_GET_FLAG(HSPI_SDCARD, SPI_FLAG_TXE));
-	HAL_SPI_Transmit(HSPI_SDCARD, &data, 1, SPI_TIMEOUT);
-}
-
-/* SPI transmit buffer */
-static void SPI_TxBuffer(uint8_t *buffer, uint16_t len)
-{
-	while(!__HAL_SPI_GET_FLAG(HSPI_SDCARD, SPI_FLAG_TXE));
-	HAL_SPI_Transmit(HSPI_SDCARD, buffer, len, SPI_TIMEOUT);
-}
-
-/* SPI receive a byte */
-static uint8_t SPI_RxByte(void)
-{
-	uint8_t dummy, data;
-	dummy = 0xFF;
-
-	while(!__HAL_SPI_GET_FLAG(HSPI_SDCARD, SPI_FLAG_TXE));
-	HAL_SPI_TransmitReceive(HSPI_SDCARD, &dummy, &data, 1, SPI_TIMEOUT);
-
-	return data;
-}
-
-/* SPI receive a byte via pointer */
-static void SPI_RxBytePtr(uint8_t *buff)
-{
-	*buff = SPI_RxByte();
-}
-
-static _sdcd_err SPI_Tx(uint8_t* tdata , uint16_t len){
-	_sdcd_err err = SDCD_SUCCESS;
-
-	while(!__HAL_SPI_GET_FLAG(sdcd.spi_d, SPI_FLAG_TXE));
-	HAL_StatusTypeDef hal_ret = HAL_SPI_Transmit(sdcd.spi_d, tdata, len , SPI_TIMEOUT);
-
-	if ( hal_ret != HAL_OK ){
-		err = SDCD_HAL_FAIL;
-		if ( hal_ret == HAL_TIMEOUT ){
-			err = SDCD_HAL_TIMEOUT;
-		}
-	}
-
-	return err;
-}
-
-static _sdcd_err SPI_TRx(uint8_t * tdata , uint8_t* rdata , uint16_t len){
-	_sdcd_err err = SDCD_SUCCESS;
-
-	while(!__HAL_SPI_GET_FLAG(sdcd.spi_d, SPI_FLAG_TXE));
-	HAL_StatusTypeDef hal_ret = HAL_SPI_TransmitReceive(sdcd.spi_d, tdata , rdata , len , SPI_TIMEOUT);
-
-	if ( hal_ret != HAL_OK ){
-		err = SDCD_HAL_FAIL;
-		if ( hal_ret == HAL_TIMEOUT ){
-			err = SDCD_HAL_TIMEOUT;
-		}
-	}
-
-	return err;
-}
-
-static _sdcd_err SPI_Rx(uint8_t* rdata , uint16_t len){
-	_sdcd_err err = SDCD_SUCCESS;
-	uint8_t dummy = 0xFF;
-
-	while ( len-- ){
-		err = SPI_TRx(&dummy, rdata++ , 1u);
-		if ( err != SDCD_SUCCESS ){
-			break;
-		}
-	}
-	return err;
-}
-
 
 /* power off */
 static inline void SD_PowerOff(void){
