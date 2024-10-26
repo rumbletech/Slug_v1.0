@@ -2,19 +2,22 @@
  * SDC_SPI.c
  *
  *  Created on: Oct 26, 2024
- *      Author: pc
+ *      Author: Mohammad Rashad
+ *      SDC Module SPI Driver.
  */
+
+#include "SDC_SPI.h"
 
 /* Sets Clock Pre-Scale and Re-Initiliazes the Driver */
 
-_sdcd_err SPI_SetClk ( SPI_HandleTypeDef* spiHandle , uint32_t preScale ){
-	_sdcd_err err = SDCD_SUCCESS;
+_sdc_spi_err SPI_SetClk ( SPI_HandleTypeDef* spiHandle , uint32_t preScale ){
+	_sdc_spi_err err = SDC_SPI_SUCCESS;
 
 	spiHandle->Init.BaudRatePrescaler = preScale;
 	HAL_StatusTypeDef ret = HAL_SPI_Init(spiHandle);
 
 	if ( ret != HAL_OK ){
-		err = SDCD_HAL_FAIL;
+		err = SDC_SPI_FAILURE;
 	}
 	return err;
 }
@@ -31,37 +34,35 @@ void SPI_CS_Disable ( GPIO_HandleTypeDef* gpioHandle ){
 	HAL_GPIO_WritePin(gpioHandle->port, 1u << gpioHandle->pinNum, GPIO_PIN_SET);
 }
 
-
 /* Transmits Bytes and Ignores the MISO Received Bytes */
 
-_sdcd_err SPI_Tx(SPI_HandleTypeDef* spiHandle , uint8_t* tdata , uint16_t len){
-	_sdcd_err err = SDCD_SUCCESS;
+_sdc_spi_err SPI_Tx(SPI_HandleTypeDef* spiHandle , uint8_t* tdata , uint16_t len){
+	_sdc_spi_err err = SDC_SPI_SUCCESS;
 
 	while(!__HAL_SPI_GET_FLAG(spiHandle , SPI_FLAG_TXE));
-	HAL_StatusTypeDef hal_ret = HAL_SPI_Transmit(sdcd.spi_d, tdata, len , SPI_TIMEOUT);
+	HAL_StatusTypeDef hal_ret = HAL_SPI_Transmit(spiHandle , tdata, len , SDC_SPI_TIMEOUT_MS);
 
 	if ( hal_ret != HAL_OK ){
-		err = SDCD_HAL_FAIL;
+		err = SDC_SPI_FAILURE;
 		if ( hal_ret == HAL_TIMEOUT ){
-			err = SDCD_HAL_TIMEOUT;
+			err = SDC_SPI_TIMEOUT;
 		}
 	}
-
 	return err;
 }
 
 /* Transmits and Receives Bytes , both buffers must be allocated at least *len* bytes*/
 
-_sdcd_err SPI_TRx(SPI_HandleTypeDef* spiHandle  , uint8_t * tdata , uint8_t* rdata , uint16_t len){
-	_sdcd_err err = SDCD_SUCCESS;
+_sdc_spi_err SPI_TRx(SPI_HandleTypeDef* spiHandle  , uint8_t * tdata , uint8_t* rdata , uint16_t len){
+	_sdc_spi_err err = SDC_SPI_SUCCESS;
 
-	while(!__HAL_SPI_GET_FLAG(sdcd.spi_d, SPI_FLAG_TXE));
-	HAL_StatusTypeDef hal_ret = HAL_SPI_TransmitReceive(spiHandle , tdata , rdata , len , SPI_TIMEOUT);
+	while(!__HAL_SPI_GET_FLAG(spiHandle , SPI_FLAG_TXE));
+	HAL_StatusTypeDef hal_ret = HAL_SPI_TransmitReceive(spiHandle , tdata , rdata , len , SDC_SPI_TIMEOUT_MS);
 
 	if ( hal_ret != HAL_OK ){
-		err = SDCD_HAL_FAIL;
+		err = SDC_SPI_FAILURE;
 		if ( hal_ret == HAL_TIMEOUT ){
-			err = SDCD_HAL_TIMEOUT;
+			err = SDC_SPI_TIMEOUT;
 		}
 	}
 
@@ -70,13 +71,13 @@ _sdcd_err SPI_TRx(SPI_HandleTypeDef* spiHandle  , uint8_t * tdata , uint8_t* rda
 
 /* Receives a number of bytes in master mode , MOSI bytes are 0xFF , ... */
 
-_sdcd_err SPI_Rx(SPI_HandleTypeDef* spiHandle , uint8_t* rdata , uint16_t len){
-	_sdcd_err err = SDCD_SUCCESS;
+_sdc_spi_err SPI_Rx(SPI_HandleTypeDef* spiHandle , uint8_t* rdata , uint16_t len){
+	_sdc_spi_err err = SDC_SPI_SUCCESS;
 	uint8_t dummy = 0xFF;
 
 	while ( len-- ){
 		err = SPI_TRx(spiHandle , &dummy, rdata++ , 1u);
-		if ( err != SDCD_SUCCESS ){
+		if ( err != SDC_SPI_SUCCESS ){
 			break;
 		}
 	}

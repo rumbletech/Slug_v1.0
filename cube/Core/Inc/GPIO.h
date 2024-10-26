@@ -8,6 +8,8 @@
 #ifndef INC_GPIO_H_
 #define INC_GPIO_H_
 
+#include <stdint.h>
+#include "stm32f1xx_hal.h"
 
 typedef struct {
 

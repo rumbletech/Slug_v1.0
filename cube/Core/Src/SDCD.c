@@ -6,6 +6,7 @@
 
 #include "stm32f1xx_hal.h"
 #include "diskio.h"
+#include "SDC_SPI.h"
 
 
 #define SPI_TIMEOUT 100
@@ -14,45 +15,6 @@
 extern SPI_HandleTypeDef 	hspi1;
 
 #define HSPI_SDCARD		 	&hspi1
-#define SDCD_SUCCESS       0x0000
-#define SDCD_HAL_FAIL      0x0001
-#define SDCD_HAL_TIMEOUT   0x0002
-#define SDCD_CMD_FAIL      0x0004
-#define SDCD_CMD_TIMEOUT   0x0008
-#define SDCD_READY_TIMEOUT 0x0010
-
-#define SDCD_BLOCK_LEN 512u
-
-typedef uint16_t _sdcd_err;
-
-enum memd_cmd {
-	          GO_IDLE_STATE,
-			  SEND_OP_COND,
-			  APP_SEND_OP_COND = 41,
-			  SEND_IF_COND = 8,
-			  SEND_CSD,
-			  SEND_CID,
-			  STOP_TRANSMISSION = 12,
-			  SEND_STATUS = 13,
-			  SET_BLOCKLEN = 16,
-			  READ_SINGLE_BLOCK,
-			  READ_MULTIPLE_BLOCK,
-			  SET_BLOCK_COUNT = 23,
-			  WRITE_BLOCK,
-			  WRITE_MULTIPLE_BLOCK,
-			  APP_CMD = 55,
-			  READ_OCR = 58,
-			  SET_WR_BLOCK_ERASE_COUNT
-};
-
- enum memd_type {
-	    UNKNOWN_CARD,
-	 	MMC_V3,
-		SD_V1,
-		SD_V2HC,
-		SD_V2SC
-};
-
 
 
  struct SDCD_Data_s {
@@ -102,8 +64,7 @@ static const uint16_t ccitt_hash[] = {
     0x6e17,0x7e36,0x4e55,0x5e74,0x2e93,0x3eb2,0x0ed1,0x1ef0,
 };
 
-uint16_t crc16_ccitt(const uint8_t* buffer, size_t size)
-{
+uint16_t crc16_ccitt(const uint8_t* buffer, size_t size){
     uint16_t crc = 0;
     while (size-- > 0)
     {
@@ -112,6 +73,15 @@ uint16_t crc16_ccitt(const uint8_t* buffer, size_t size)
     return crc;
 }
 
+static inline uint8_t crc7(enum memd_cmd cmd_idx){
+	if(cmd_idx == GO_IDLE_STATE ){
+		return 0x95;
+	}
+	else if (cmd_idx == SEND_IF_COND){
+		return 0x87;
+	}
+	return 0x01;
+}
 
 extern volatile uint16_t Timer1;
 
@@ -129,15 +99,10 @@ void SDCD_Init (SPI_HandleTypeDef* spi_d ,  GPIO_HandleTypeDef* gpiod ){
 	 sdcd.pwrf = false;
 	 sdcd.mType = UNKNOWN_CARD;
 
-	 CS_Disable();
+	 SPI_CS_Disable(sdcd.spi_cs);
  }
 
-static uint8_t get_CRC(enum memd_cmd  cmd_idx){
-	if(cmd_idx == GO_IDLE_STATE ) return 0x95;
-	else if (cmd_idx == SEND_IF_COND) return 0x87;
-	else return 1;
 
-}
 
 /* power off */
 static inline void SD_PowerOff(void){
