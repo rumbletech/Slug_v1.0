@@ -36,6 +36,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include <string.h>
 #include "ff_gen_drv.h"
+#include "SDCD.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -98,7 +99,7 @@ DSTATUS USER_status (
 )
 {
   /* USER CODE BEGIN STATUS */
-    Stat = STA_NOINIT;
+    Stat = SD_disk_status(pdrv);
     Common_Printf("SD_disk_status Stat \r\n");
     return Stat;
   /* USER CODE END STATUS */
@@ -146,7 +147,7 @@ DRESULT USER_write (
   /* USER CODE HERE */
     Common_Printf("SD_disk_Write Stat \r\n");
 
-    return RES_OK;
+    return SD_disk_write( pdrv, buff,  sector,  count);
   /* USER CODE END WRITE */
 }
 #endif /* _USE_WRITE == 1 */
@@ -166,9 +167,8 @@ DRESULT USER_ioctl (
 )
 {
   /* USER CODE BEGIN IOCTL */
-    DRESULT res = RES_ERROR;
     Common_Printf("SD_disk_ioctl Stat \r\n");
-    return res;
+    return SD_disk_ioctl( pdrv,  cmd, buff);
   /* USER CODE END IOCTL */
 }
 #endif /* _USE_IOCTL == 1 */
