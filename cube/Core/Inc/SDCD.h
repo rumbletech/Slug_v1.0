@@ -50,6 +50,7 @@ typedef enum {
 #define SDCD_CMD_FAIL      0x0004
 #define SDCD_CMD_TIMEOUT   0x0008
 #define SDCD_READY_TIMEOUT 0x0010
+#define SDCD_READ_FAIL     0x0020
 
 #define SDCD_BLOCK_LEN 512u
 

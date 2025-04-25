@@ -5,7 +5,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2024 STMicroelectronics.
+  * Copyright (c) 2025 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -69,7 +69,7 @@
 #define _USE_FASTSEEK        1
 /* This option switches fast seek feature. (0:Disable or 1:Enable) */
 
-#define _USE_LABEL           0
+#define _USE_LABEL           1
 /* This option switches volume label functions, f_getlabel() and f_setlabel().
 /  (0:Disable or 1:Enable) */
 
@@ -112,7 +112,7 @@
 /   874  - Thai (OEM, Windows)
 /   1    - ASCII (No extended character. Valid for only non-LFN configuration.) */
 
-#define _USE_LFN     0    /* 0 to 3 */
+#define _USE_LFN     1    /* 0 to 3 */
 #define _MAX_LFN     255    /* Maximum LFN length to handle (12 to 255) */
 /* The _USE_LFN option switches the LFN feature.
 /

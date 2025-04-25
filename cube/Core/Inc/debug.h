@@ -15,7 +15,7 @@
 #include "main.h"
 
 #define _DEBUG_PRINTF_TIMEOUT_      500u
-#define _DEBUG_PRINTF_BUFFLEN_      128u
+#define _DEBUG_PRINTF_BUFFLEN_      2048u
 #define _DEUBG_PRINTF_ERRH_         1u
 #define _DEBUG_PRINTF_BAUD_         115200u
 #define _DEBUG_PRINTF_PARITY_       UART_PARITY_NONE

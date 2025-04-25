@@ -6,7 +6,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2024 STMicroelectronics.
+  * Copyright (c) 2025 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -84,7 +84,7 @@ DSTATUS USER_initialize (
 {
   /* USER CODE BEGIN INIT */
     Stat = SD_disk_init(pdrv);
-    Common_Printf("SD_disk_init Stat = %d\r\n",Stat);
+    Common_Printf("SD_disk_init %d \r\n",Stat);
     return Stat;
   /* USER CODE END INIT */
 }
@@ -100,7 +100,7 @@ DSTATUS USER_status (
 {
   /* USER CODE BEGIN STATUS */
     Stat = SD_disk_status(pdrv);
-    Common_Printf("SD_disk_status Stat \r\n");
+    Common_Printf("SD_disk_status %d \r\n" , Stat);
     return Stat;
   /* USER CODE END STATUS */
 }
@@ -122,7 +122,7 @@ DRESULT USER_read (
 {
   /* USER CODE BEGIN READ */
 	Stat = SD_disk_read(pdrv, buff, sector, count);
-    Common_Printf("SD_disk_read Stat = %d\r\n",Stat);
+    Common_Printf("SD_disk_read %d \r\n",Stat);
     return Stat;
   /* USER CODE END READ */
 }
@@ -145,9 +145,9 @@ DRESULT USER_write (
 {
   /* USER CODE BEGIN WRITE */
   /* USER CODE HERE */
-    Common_Printf("SD_disk_Write Stat \r\n");
-
-    return SD_disk_write( pdrv, buff,  sector,  count);
+    Stat = SD_disk_write( pdrv, buff,  sector,  count);
+    Common_Printf("SD_disk_Write %d \r\n" , Stat);
+    return Stat;
   /* USER CODE END WRITE */
 }
 #endif /* _USE_WRITE == 1 */
@@ -167,8 +167,9 @@ DRESULT USER_ioctl (
 )
 {
   /* USER CODE BEGIN IOCTL */
-    Common_Printf("SD_disk_ioctl Stat \r\n");
-    return SD_disk_ioctl( pdrv,  cmd, buff);
+	Stat = SD_disk_ioctl( pdrv,  cmd, buff);
+    Common_Printf("SD_disk_ioctl %d \r\n", Stat);
+    return Stat;
   /* USER CODE END IOCTL */
 }
 #endif /* _USE_IOCTL == 1 */

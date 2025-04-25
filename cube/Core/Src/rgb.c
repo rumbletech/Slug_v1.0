@@ -19,21 +19,21 @@ GPIO_HandleTypeDef gpio_led_b;
 
 void RGB_Init( void ){
 
-	gpio_led_r.pinData.Pin = GPIO_PIN_5;
+	gpio_led_r.pinData.Pin = GPIO_PIN_4;
 	gpio_led_r.pinData.Mode = GPIO_MODE_OUTPUT_PP;
     gpio_led_r.pinData.Pull = GPIO_NOPULL;
     gpio_led_r.pinData.Speed = GPIO_SPEED_FREQ_LOW;
     gpio_led_r.port = GPIOB;
-    gpio_led_r.pinNum = 5u;
+    gpio_led_r.pinNum = 4u;
 
     HAL_GPIO_Init(gpio_led_r.port, &gpio_led_r.pinData);
 
-	gpio_led_g.pinData.Pin = GPIO_PIN_4;
+	gpio_led_g.pinData.Pin = GPIO_PIN_5;
 	gpio_led_g.pinData.Mode = GPIO_MODE_OUTPUT_PP;
     gpio_led_g.pinData.Pull = GPIO_NOPULL;
     gpio_led_g.pinData.Speed = GPIO_SPEED_FREQ_LOW;
     gpio_led_g.port = GPIOB;
-    gpio_led_g.pinNum = 4u;
+    gpio_led_g.pinNum = 5u;
 
     HAL_GPIO_Init(gpio_led_g.port, &gpio_led_g.pinData);
 
