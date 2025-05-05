@@ -248,7 +248,6 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     __HAL_AFIO_REMAP_USART1_ENABLE();
 
   /* USER CODE BEGIN USART1_MspInit 1 */
-
   /* USER CODE END USART1_MspInit 1 */
   }
   else if(huart->Instance==USART2)
@@ -275,7 +274,6 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /* USER CODE BEGIN USART2_MspInit 1 */
-
   /* USER CODE END USART2_MspInit 1 */
   }
   else if(huart->Instance==USART3)
@@ -302,7 +300,6 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* USER CODE BEGIN USART3_MspInit 1 */
-
   /* USER CODE END USART3_MspInit 1 */
   }
 

@@ -74,6 +74,7 @@ static void MX_RTC_Init(void);
 /* USER CODE BEGIN 0 */
 
 uint8_t errh_code;
+extern volatile uint32_t uart_count;
 
 static void TEST_SDCARD( void ){
 	static uint32_t index = 0u;
@@ -85,10 +86,10 @@ static void TEST_SDCARD( void ){
 	Common_Printf("Total Fail %d = \r\n" , failCount);
 
 	index++;
-
 }
 
 static void TEST_RGB ( void ){
+
       static uint32_t color = 0u;
 	  RGB_Write(color++);
 }
@@ -158,7 +159,7 @@ int main(void)
 
   Common_Printf("Enumeration Successful Debug Port Open\r\n");
 
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_SET);
+  //HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_SET);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -167,9 +168,9 @@ int main(void)
   while (1)
   {
 	//  TEST_SDCARD();
-	  Common_Printf("yo\r\n");
+	  Common_Printf("yo %c \r\n" , uart_count);
 	  TEST_RGB();
-	  HAL_Delay(1000u);
+	  HAL_Delay(200u);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

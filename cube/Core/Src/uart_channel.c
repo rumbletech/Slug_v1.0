@@ -189,14 +189,26 @@ extern void uch_SetChannelState ( uint8_t channelID , bool state ){
     		state == true ? GPIO_PIN_SET : GPIO_PIN_RESET);
 
 }
+volatile uint32_t uart_count = 0u;
+void USART3_IRQHandler( void ){
+	uart_count = USART3->DR;
+}
+void USART2_IRQHandler( void ){
+	//HAL_UART_IRQHandler(&uch.phy.uartH[1u]);
+}
+void USART1_IRQHandler( void ){
+	//HAL_UART_IRQHandler(&uch.phy.uartH[2u]);
+}
 
 extern void uch_ApplyConfiguration ( uint8_t channelID ){
 
 	if ( channelID > UCH_MAX_NUM || channelID == 0u ){
+		Common_Printf("Invalid Channel %d\r\n" , channelID);
 		return;
 	}
 	/* Only Apply Enable Pin Configuration for now */
 	if ( !assertConfiguration(channelID)){
+		Common_Printf("Bad Configuration for Channel %d\r\n" , channelID);
 		return;
 	}
 	/* Apply UART Configuration */
@@ -251,10 +263,29 @@ extern void uch_ApplyConfiguration ( uint8_t channelID ){
 
 	HAL_UART_Init(&uch.phy.uartH[channelID-1]);
 
-	HAL_Delay(200);
+    HAL_Delay(500);
 	/* Apply Channel Enable */
 	uch_SetChannelState(channelID,true);
 
+	HAL_Delay(500);
+
+	uint32_t r = uch.phy.uartH[channelID-1].Instance->DR; // Read any Sporadic Character
+	UNUSED(r);
+
+	__HAL_UART_ENABLE_IT(&uch.phy.uartH[channelID-1],UART_IT_RXNE);
+
+    if ( channelID == CHANNEL_1 ){
+    	HAL_NVIC_SetPriority(USART3_IRQn, 1, 1);
+    	HAL_NVIC_EnableIRQ(USART3_IRQn);
+    }
+    else if ( channelID == CHANNEL_2 ){
+    	HAL_NVIC_SetPriority(USART2_IRQn, 2, 2);
+    	HAL_NVIC_EnableIRQ(USART2_IRQn);
+    }
+    else if ( channelID == CHANNEL_3 ){
+    	HAL_NVIC_SetPriority(USART1_IRQn, 3, 3);
+    	HAL_NVIC_EnableIRQ(USART1_IRQn);
+    }
 }
 
 static uint32_t str2int(char* str, uint32_t len)
