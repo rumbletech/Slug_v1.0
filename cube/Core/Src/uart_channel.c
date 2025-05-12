@@ -37,7 +37,7 @@ struct {
 
 } uch;
 
-
+static uint8_t arr[512];
 static void uch_phyInit( void ){
 
 	uch.phy.uartH[0u].Instance = USART3;
@@ -48,7 +48,7 @@ static void uch_phyInit( void ){
 	uch.phy.uartH[0u].Init.Mode = UART_MODE_TX_RX;
 	uch.phy.uartH[0u].Init.HwFlowCtl = UART_HWCONTROL_NONE;
 	uch.phy.uartH[0u].Init.OverSampling = UART_OVERSAMPLING_16;
-
+	uch.phy.uartH[0u].pRxBuffPtr = &arr[0];
 	HAL_UART_Init(&uch.phy.uartH[0u]);
 
 	uch.phy.gpioH[0u].pinData.Pin = GPIO_PIN_0;
@@ -190,14 +190,20 @@ extern void uch_SetChannelState ( uint8_t channelID , bool state ){
 
 }
 volatile uint32_t uart_count = 0u;
+
 void USART3_IRQHandler( void ){
-	uart_count = USART3->DR;
+	HAL_UART_IRQHandler(&uch.phy.uartH[0u]);
+	uart_count++;
 }
 void USART2_IRQHandler( void ){
-	//HAL_UART_IRQHandler(&uch.phy.uartH[1u]);
+	HAL_UART_IRQHandler(&uch.phy.uartH[1u]);
 }
 void USART1_IRQHandler( void ){
-	//HAL_UART_IRQHandler(&uch.phy.uartH[2u]);
+	HAL_UART_IRQHandler(&uch.phy.uartH[2u]);
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
+	Common_Printf("rx\r\n");
 }
 
 extern void uch_ApplyConfiguration ( uint8_t channelID ){
@@ -277,6 +283,8 @@ extern void uch_ApplyConfiguration ( uint8_t channelID ){
     if ( channelID == CHANNEL_1 ){
     	HAL_NVIC_SetPriority(USART3_IRQn, 1, 1);
     	HAL_NVIC_EnableIRQ(USART3_IRQn);
+    	UART_Start_Receive_IT(&uch.phy.uartH[0u], arr, 10);
+
     }
     else if ( channelID == CHANNEL_2 ){
     	HAL_NVIC_SetPriority(USART2_IRQn, 2, 2);
