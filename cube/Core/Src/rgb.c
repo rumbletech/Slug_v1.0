@@ -5,52 +5,41 @@
  *      Author: rumbl
  */
 
-
 #include "rgb.h"
-#include "GPIO.h"
+#include "lw_gpio.h"
+#include "bsp.h"
 
 #define COLOR_R_BITPOS 2u
 #define COLOR_G_BITPOS 1u
 #define COLOR_B_BITPOS 0u
 
-GPIO_HandleTypeDef gpio_led_r;
-GPIO_HandleTypeDef gpio_led_g;
-GPIO_HandleTypeDef gpio_led_b;
+struct {
+	lw_gpio gpio_led_r;
+	lw_gpio gpio_led_g;
+	lw_gpio gpio_led_b;
+	uint8_t color;
+} rgb ;
 
 void RGB_Init( void ){
 
-	gpio_led_r.pinData.Pin = GPIO_PIN_4;
-	gpio_led_r.pinData.Mode = GPIO_MODE_OUTPUT_PP;
-    gpio_led_r.pinData.Pull = GPIO_NOPULL;
-    gpio_led_r.pinData.Speed = GPIO_SPEED_FREQ_LOW;
-    gpio_led_r.port = GPIOB;
-    gpio_led_r.pinNum = 4u;
+	rgb.gpio_led_r.data.pin = BSP_RGB_RED_LED_GPIO_PIN;
+    rgb.gpio_led_r.hwctx = BSP_RGB_RED_LED_GPIO_PORT;
+    lw_GPIO_Init(&rgb.gpio_led_r);
 
-    HAL_GPIO_Init(gpio_led_r.port, &gpio_led_r.pinData);
+	rgb.gpio_led_g.data.pin = BSP_RGB_GREEN_LED_GPIO_PIN;
+    rgb.gpio_led_g.hwctx = BSP_RGB_GREEN_LED_GPIO_PORT;
+    lw_GPIO_Init(&rgb.gpio_led_g);
 
-	gpio_led_g.pinData.Pin = GPIO_PIN_5;
-	gpio_led_g.pinData.Mode = GPIO_MODE_OUTPUT_PP;
-    gpio_led_g.pinData.Pull = GPIO_NOPULL;
-    gpio_led_g.pinData.Speed = GPIO_SPEED_FREQ_LOW;
-    gpio_led_g.port = GPIOB;
-    gpio_led_g.pinNum = 5u;
-
-    HAL_GPIO_Init(gpio_led_g.port, &gpio_led_g.pinData);
-
-
-	gpio_led_b.pinData.Pin = GPIO_PIN_3;
-	gpio_led_b.pinData.Mode = GPIO_MODE_OUTPUT_PP;
-    gpio_led_b.pinData.Pull = GPIO_NOPULL;
-    gpio_led_b.pinData.Speed = GPIO_SPEED_FREQ_LOW;
-    gpio_led_b.port = GPIOB;
-    gpio_led_b.pinNum = 3u;
-
-    HAL_GPIO_Init(gpio_led_b.port, &gpio_led_b.pinData);
-
+	rgb.gpio_led_b.data.pin = BSP_RGB_BLUE_LED_GPIO_PIN;
+    rgb.gpio_led_b.hwctx = BSP_RGB_BLUE_LED_GPIO_PORT;
+    lw_GPIO_Init(&rgb.gpio_led_b);
 }
 
 void RGB_Write( uint8_t color ){
-	HAL_GPIO_WritePin(gpio_led_r.port, gpio_led_r.pinData.Pin , (color&(1u << COLOR_R_BITPOS))?(GPIO_PIN_SET):(GPIO_PIN_RESET));
-	HAL_GPIO_WritePin(gpio_led_g.port, gpio_led_g.pinData.Pin , (color&(1u << COLOR_G_BITPOS))?(GPIO_PIN_SET):(GPIO_PIN_RESET));
-	HAL_GPIO_WritePin(gpio_led_b.port, gpio_led_b.pinData.Pin , (color&(1u << COLOR_B_BITPOS))?(GPIO_PIN_SET):(GPIO_PIN_RESET));
+	lw_GPIO_Write(&rgb.gpio_led_r, (color&(1u << COLOR_R_BITPOS))?(1u):(0u));
+	lw_GPIO_Write(&rgb.gpio_led_g, (color&(1u << COLOR_G_BITPOS))?(1u):(0u));
+	lw_GPIO_Write(&rgb.gpio_led_b, (color&(1u << COLOR_B_BITPOS))?(1u):(0u));
+	rgb.color = color;
 }
+
+

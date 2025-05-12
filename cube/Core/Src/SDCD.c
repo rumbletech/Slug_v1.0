@@ -7,7 +7,10 @@
 #include "stm32f1xx_hal.h"
 #include "diskio.h"
 #include "SDC_SPI.h"
-
+#include "lw_gpio.h"
+#include "lw_spi.h"
+#include "lw_rcc.h"
+#include "bsp.h"
 
 #define SPI_TIMEOUT 100
 
@@ -18,8 +21,8 @@ extern SPI_HandleTypeDef 	hspi1;
 
 
  struct SDCD_Data_s {
-	 SPI_HandleTypeDef* spi_d;	/* SPID Device */
-	 GPIO_HandleTypeDef* spi_cs; /* SPI CS GPIO Device */
+	 lw_spi spi; /* SPI Device */
+	 lw_gpio cs; /* SPI CS GPIO Device */
 	 SD_Card_Type mType; /* Driver Detected Memory Type */
 	 DSTATUS mStat; /* Driver Status */
 	 bool pwrf; /* Driver Power Flag */
@@ -84,43 +87,48 @@ static inline uint8_t crc7(SD_Card_CMD cmd_idx){
 }
 
 static _sdcd_err SDCD_Receive(uint8_t* ptr , uint16_t len ){
-	_sdc_spi_err err = SPI_Rx(sdcd.spi_d, ptr , len );
-	(void)err;
-	/* Assert */
-
+	lw_SPI_TransmitReceieve(&sdcd.spi, NULL , ptr , len);
 	return SDCD_SUCCESS;
 }
 
 static _sdcd_err SDCD_Transmit(uint8_t* ptr , uint16_t len ){
-	_sdc_spi_err err = SPI_Tx(sdcd.spi_d, ptr , len );
-	(void)err;
-	/* Assert */
+	lw_SPI_TransmitReceieve(&sdcd.spi, ptr , NULL , len);
 	return SDCD_SUCCESS;
 }
 
 static void SDCD_SelectChip( void ){
-	SPI_CS_Enable(sdcd.spi_cs);
+	lw_GPIO_Write(&sdcd.cs,0u);
 }
 
 static void SDCD_DeselectChip( void ){
-	SPI_CS_Disable(sdcd.spi_cs);
+	lw_GPIO_Write(&sdcd.cs,1u);
+}
+
+static void SDCD_PreInit( void ){
+	lw_RCC_Enable_GPIOA();
+	lw_RCC_Enable_SPI1();
+}
+
+static void SDCD_PostInit( void ) {
+	 SDCD_DeselectChip();
 }
 
 void SDCD_Init (SPI_HandleTypeDef* spi_d ,  GPIO_HandleTypeDef* gpiod ){
 
-	 if ( !spi_d ||
-		  !gpiod ){
-		 errh_code = _SDCD_ERRH_;
-		 Error_Handler();
-	 }
+	SDCD_PreInit();
 
-	 sdcd.spi_d = spi_d;
-	 sdcd.spi_cs = gpiod;
-	 sdcd.mStat = STA_NOINIT;
-	 sdcd.pwrf = false;
-	 sdcd.mType = SDC_UNKNOWN;
+	sdcd.cs.hwctx = BSP_SDC_SPI_CS_PORT;
+	sdcd.cs.data.pin = BSP_SDC_SPI_CS_PIN;
+	lw_GPIO_Init(&sdcd.cs);
 
-	 SDCD_DeselectChip();
+	sdcd.spi.hwctx = BSP_SDC_SPI;
+	lw_SPI_Init(&sdcd.spi);
+
+	sdcd.mStat = STA_NOINIT;
+	sdcd.pwrf = false;
+	sdcd.mType = SDC_UNKNOWN;
+
+	SDCD_PostInit();
 }
 
 /* power off */
@@ -410,9 +418,9 @@ static bool SD_TxDataBlock(const BYTE *buff,uint8_t token)
 				break; 
 		}
 		//Clear RX buffer
-		while(__HAL_SPI_GET_FLAG(sdcd.spi_d,SPI_FLAG_RXNE)) {
-			SDCD_Receive(&response,1);
-		}
+//		while(__HAL_SPI_GET_FLAG(sdcd.spi_d,SPI_FLAG_RXNE)) {
+//			SDCD_Receive(&response,1);
+//		}
 	}
 
 	if((response & 0x1F) == 0x05 ){
