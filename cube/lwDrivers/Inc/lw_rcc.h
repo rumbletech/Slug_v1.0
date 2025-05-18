@@ -12,6 +12,8 @@
 #include "common.h"
 #include "stm32f1xx.h"
 
+//Clock enable function for GPIO AFIO
+void lw_RCC_Enable_AFIO(void);
 
 // Clock enable functions for GPIO peripherals
 void lw_RCC_Enable_GPIOA(void);

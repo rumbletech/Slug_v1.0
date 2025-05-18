@@ -23,6 +23,9 @@ extern SPI_HandleTypeDef 	hspi1;
  struct SDCD_Data_s {
 	 lw_spi spi; /* SPI Device */
 	 lw_gpio cs; /* SPI CS GPIO Device */
+	 lw_gpio mosi; /* SPI MOSI GPIO Device */
+	 lw_gpio miso; /* SPI MISO GPIO Device */
+	 lw_gpio sclk; /* SPI SCLK GPIO Device */
 	 SD_Card_Type mType; /* Driver Detected Memory Type */
 	 DSTATUS mStat; /* Driver Status */
 	 bool pwrf; /* Driver Power Flag */
@@ -105,30 +108,51 @@ static void SDCD_DeselectChip( void ){
 }
 
 static void SDCD_PreInit( void ){
-	lw_RCC_Enable_GPIOA();
 	lw_RCC_Enable_SPI1();
+	lw_RCC_Enable_GPIOA();
 }
 
-static void SDCD_PostInit( void ) {
-	 SDCD_DeselectChip();
-}
-
-void SDCD_Init (SPI_HandleTypeDef* spi_d ,  GPIO_HandleTypeDef* gpiod ){
-
-	SDCD_PreInit();
-
+void SDCD_BSP_Init( void ){
 	sdcd.cs.hwctx = BSP_SDC_SPI_CS_PORT;
 	sdcd.cs.data.pin = BSP_SDC_SPI_CS_PIN;
+	sdcd.cs.data.cfg = LW_GPIO_CFG_OUTPUT_PP;
+	sdcd.cs.data.mode = LW_GPIO_MODE_50MHZ;
 	lw_GPIO_Init(&sdcd.cs);
+
+	sdcd.mosi.hwctx = BSP_SDC_SPI_MOSI_PORT;
+	sdcd.mosi.data.pin = BSP_SDC_SPI_MOSI_PIN;
+	sdcd.mosi.data.cfg = LW_GPIO_CFG_ALT_PP;
+	sdcd.mosi.data.mode = LW_GPIO_MODE_10MHZ;
+	lw_GPIO_Init(&sdcd.mosi);
+
+	sdcd.sclk.hwctx = BSP_SDC_SPI_SCLK_PORT;
+	sdcd.sclk.data.pin = BSP_SDC_SPI_SCLK_PIN;
+	sdcd.sclk.data.cfg = LW_GPIO_CFG_ALT_PP;
+	sdcd.sclk.data.mode = LW_GPIO_MODE_10MHZ;
+	lw_GPIO_Init(&sdcd.sclk);
+
+	sdcd.miso.hwctx = BSP_SDC_SPI_MISO_PORT;
+	sdcd.miso.data.pin = BSP_SDC_SPI_MISO_PIN;
+	sdcd.miso.data.cfg = LW_GPIO_CFG_INPUT_FLOAT;
+	sdcd.miso.data.mode = LW_GPIO_MODE_INPUT;
+	lw_GPIO_Init(&sdcd.miso);
 
 	sdcd.spi.hwctx = BSP_SDC_SPI;
 	lw_SPI_Init(&sdcd.spi);
+}
+
+
+void SDCD_Init ( void ){
+
+	SDCD_PreInit();
+
+	SDCD_BSP_Init();
 
 	sdcd.mStat = STA_NOINIT;
 	sdcd.pwrf = false;
 	sdcd.mType = SDC_UNKNOWN;
 
-	SDCD_PostInit();
+	SDCD_DeselectChip();
 }
 
 /* power off */

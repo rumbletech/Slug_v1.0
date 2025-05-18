@@ -10,6 +10,14 @@
 
 
 /**
+ * @brief Enables the clock for AFIO.
+ */
+void lw_RCC_Enable_AFIO(void) {
+    RCC->APB2ENR |= RCC_APB2ENR_AFIOEN_Msk;
+}
+
+
+/**
  * @brief Enables the clock for GPIOA.
  */
 void lw_RCC_Enable_GPIOA(void) {

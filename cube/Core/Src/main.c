@@ -127,7 +127,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_SPI1_Init();
+//  MX_SPI1_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
@@ -141,11 +141,11 @@ int main(void)
 #if defined(_OPTS_DEBUG_EN) && _OPTS_DEBUG_EN == true
   Debug_Init(&huart3);
 #endif
-  SDCD_Init(&hspi1,&gpio_SPI1_CS);
+  SDCD_Init();
   uch_Init();
 
   _fsys_err res = Fsys_Init();
-
+  Common_Printf("Hello World \r\n");
   if(res != FSYS_SUCCESS) {
 	  Common_Printf("Mount Failed %d\r\n", res);
 	  while(1);

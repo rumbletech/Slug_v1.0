@@ -56,7 +56,7 @@ typedef enum {
 
 typedef uint16_t _sdcd_err;
 
-void SDCD_Init (SPI_HandleTypeDef* spi_d ,  GPIO_HandleTypeDef* gpiod );
+void SDCD_Init ( void );
 
 /* Fatfs Interface Functions */
 DSTATUS SD_disk_init(BYTE drv);
