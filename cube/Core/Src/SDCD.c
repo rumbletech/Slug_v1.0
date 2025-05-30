@@ -1,24 +1,14 @@
 #include "common.h"
 #include "fatfs.h"
-#include "GPIO.h"
 #include <stdbool.h>
 #include "SDCD.h"
-
-#include "stm32f1xx_hal.h"
 #include "diskio.h"
-#include "SDC_SPI.h"
 #include "lw_gpio.h"
 #include "lw_spi.h"
 #include "lw_rcc.h"
 #include "bsp.h"
 
-#define SPI_TIMEOUT 100
-
 #define _SDCD_ERRH_ 0x02
-extern SPI_HandleTypeDef 	hspi1;
-
-#define HSPI_SDCARD		 	&hspi1
-
 
  struct SDCD_Data_s {
 	 lw_spi spi; /* SPI Device */

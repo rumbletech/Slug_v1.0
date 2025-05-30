@@ -11,6 +11,9 @@
 #include "common.h"
 #include "file_sys.h"
 #include "jsmn.h"
+#include "lw_uart.h"
+#include "lw_gpio.h"
+#include "bsp.h"
 #include <string.h>
 
 #define UCH_MAX_NUM 3u
@@ -20,8 +23,10 @@
 struct {
 
 	struct {
-		GPIO_HandleTypeDef gpioH[UCH_MAX_NUM];
-		UART_HandleTypeDef uartH[UCH_MAX_NUM];
+		lw_gpio ch_Enable[UCH_MAX_NUM];
+		lw_gpio ch_UartTx[UCH_MAX_NUM];
+		lw_gpio ch_UartRx[UCH_MAX_NUM];
+		lw_uart ch_Uart[UCH_MAX_NUM];
 	} phy;
 
 	struct {
@@ -37,75 +42,117 @@ struct {
 
 } uch;
 
-static uint8_t arr[512];
-static void uch_phyInit( void ){
+static void uch_PreInit( void ){
+	lw_RCC_Enable_GPIOA();
+	lw_RCC_Enable_GPIOB();
+	lw_RCC_Enable_USART1();
+	lw_RCC_Enable_USART2();
+	lw_RCC_Enable_USART3();
+}
 
-	uch.phy.uartH[0u].Instance = USART3;
-	uch.phy.uartH[0u].Init.BaudRate = 115200;
-	uch.phy.uartH[0u].Init.WordLength = UART_WORDLENGTH_8B;
-	uch.phy.uartH[0u].Init.StopBits = UART_STOPBITS_1;
-	uch.phy.uartH[0u].Init.Parity = UART_PARITY_NONE;
-	uch.phy.uartH[0u].Init.Mode = UART_MODE_TX_RX;
-	uch.phy.uartH[0u].Init.HwFlowCtl = UART_HWCONTROL_NONE;
-	uch.phy.uartH[0u].Init.OverSampling = UART_OVERSAMPLING_16;
-	uch.phy.uartH[0u].pRxBuffPtr = &arr[0];
-	HAL_UART_Init(&uch.phy.uartH[0u]);
+static void uch_BSP_Init( void ){
 
-	uch.phy.gpioH[0u].pinData.Pin = GPIO_PIN_0;
-	uch.phy.gpioH[0u].pinData.Mode = GPIO_MODE_OUTPUT_PP;
-	uch.phy.gpioH[0u].pinData.Pull = GPIO_NOPULL;
-	uch.phy.gpioH[0u].pinData.Speed = GPIO_SPEED_FREQ_LOW;
-	uch.phy.gpioH[0u].port = GPIOB;
-	uch.phy.gpioH[0u].pinNum = 0u;
+	/* Channel [1] */
 
-    HAL_GPIO_Init(uch.phy.gpioH[0u].port, &uch.phy.gpioH[0u].pinData);
-    HAL_GPIO_WritePin(uch.phy.gpioH[0u].port, uch.phy.gpioH[0u].pinData.Pin, _INIT_DEBUG_EN);
+	uch.phy.ch_UartTx[0u].hwctx = BSP_CH1_UART_TX_PORT;
+	uch.phy.ch_UartTx[0u].data.pin = BSP_CH1_UART_TX_PIN;
+	uch.phy.ch_UartTx[0u].data.cfg = LW_GPIO_CFG_ALT_PP;
+	uch.phy.ch_UartTx[0u].data.mode = LW_GPIO_MODE_50MHZ;
+    lw_GPIO_Init(&uch.phy.ch_UartTx[0u]);
+
+	uch.phy.ch_UartRx[0u].hwctx = BSP_CH1_UART_RX_PORT;
+	uch.phy.ch_UartRx[0u].data.pin = BSP_CH1_UART_RX_PIN;
+	uch.phy.ch_UartRx[0u].data.cfg = LW_GPIO_CFG_INPUT_FLOAT;
+	uch.phy.ch_UartRx[0u].data.mode = LW_GPIO_MODE_INPUT;
+    lw_GPIO_Init(&uch.phy.ch_UartRx[0u]);
+
+	uch.phy.ch_Uart[0u].hwctx = BSP_CH1_UART ;
+	uch.phy.ch_Uart[0u].data.baudRate = 115200;
+	uch.phy.ch_Uart[0u].data.dataBits = LW_UART_NUM_DATA_BITS_8;
+	uch.phy.ch_Uart[0u].data.stopBits = LW_UART_NUM_STOP_BITS_1;
+	uch.phy.ch_Uart[0u].data.parity = LW_UART_PARITY_NONE;
+	lw_UART_Init(&uch.phy.ch_Uart[0u]);
+
+#if defined(_OPTS_DEBUG_EN) && _OPTS_DEBUG_EN == true
+	Debug_Init(&uch.phy.ch_Uart[0u]);
+#endif
+
+	uch.phy.ch_Enable[0u].hwctx = BSP_CH1_EN_PORT;
+	uch.phy.ch_Enable[0u].data.pin = BSP_CH1_EN_PIN;
+	uch.phy.ch_Enable[0u].data.cfg = LW_GPIO_CFG_OUTPUT_PP;
+	uch.phy.ch_Enable[0u].data.mode = LW_GPIO_MODE_10MHZ;
+    lw_GPIO_Init(&uch.phy.ch_Enable[0u]);
+#if defined(_OPTS_DEBUG_EN) && _OPTS_DEBUG_EN == true
+    lw_GPIO_Write(&uch.phy.ch_Enable[0u], _INIT_DEBUG_EN);
+#else
+    lw_GPIO_Write(&uch.phy.ch_Enable[0u], 0u);
+#endif
 
 
-	uch.phy.uartH[1u].Instance = USART2;
-	uch.phy.uartH[1u].Init.BaudRate = 115200;
-	uch.phy.uartH[1u].Init.WordLength = UART_WORDLENGTH_8B;
-	uch.phy.uartH[1u].Init.StopBits = UART_STOPBITS_1;
-	uch.phy.uartH[1u].Init.Parity = UART_PARITY_NONE;
-	uch.phy.uartH[1u].Init.Mode = UART_MODE_TX_RX;
-	uch.phy.uartH[1u].Init.HwFlowCtl = UART_HWCONTROL_NONE;
-	uch.phy.uartH[1u].Init.OverSampling = UART_OVERSAMPLING_16;
+	/* Channel [2] */
 
-	HAL_UART_Init(&uch.phy.uartH[1u]);
+	uch.phy.ch_UartTx[1u].hwctx = BSP_CH2_UART_TX_PORT;
+	uch.phy.ch_UartTx[1u].data.pin = BSP_CH2_UART_TX_PIN;
+	uch.phy.ch_UartTx[1u].data.cfg = LW_GPIO_CFG_ALT_PP;
+	uch.phy.ch_UartTx[1u].data.mode = LW_GPIO_MODE_50MHZ;
+    lw_GPIO_Init(&uch.phy.ch_UartTx[1u]);
 
-	uch.phy.gpioH[1u].pinData.Pin = GPIO_PIN_1;
-	uch.phy.gpioH[1u].pinData.Mode = GPIO_MODE_OUTPUT_PP;
-	uch.phy.gpioH[1u].pinData.Pull = GPIO_NOPULL;
-	uch.phy.gpioH[1u].pinData.Speed = GPIO_SPEED_FREQ_LOW;
-	uch.phy.gpioH[1u].port = GPIOB;
-	uch.phy.gpioH[1u].pinNum = 1u;
+	uch.phy.ch_UartRx[1u].hwctx = BSP_CH2_UART_RX_PORT;
+	uch.phy.ch_UartRx[1u].data.pin = BSP_CH2_UART_RX_PIN;
+	uch.phy.ch_UartRx[1u].data.cfg = LW_GPIO_CFG_INPUT_FLOAT;
+	uch.phy.ch_UartRx[1u].data.mode = LW_GPIO_MODE_INPUT;
+    lw_GPIO_Init(&uch.phy.ch_UartRx[1u]);
 
-    HAL_GPIO_Init(uch.phy.gpioH[1u].port, &uch.phy.gpioH[1u].pinData);
-    HAL_GPIO_WritePin(uch.phy.gpioH[1u].port, uch.phy.gpioH[1u].pinData.Pin, GPIO_PIN_RESET);
+	uch.phy.ch_Uart[1u].hwctx = BSP_CH2_UART ;
+	uch.phy.ch_Uart[1u].data.baudRate = 115200;
+	uch.phy.ch_Uart[1u].data.dataBits = LW_UART_NUM_DATA_BITS_8;
+	uch.phy.ch_Uart[1u].data.stopBits = LW_UART_NUM_STOP_BITS_1;
+	uch.phy.ch_Uart[1u].data.parity = LW_UART_PARITY_NONE;
+	lw_UART_Init(&uch.phy.ch_Uart[1u]);
 
-	uch.phy.uartH[2u].Instance = USART1;
-	uch.phy.uartH[2u].Init.BaudRate = 115200;
-	uch.phy.uartH[2u].Init.WordLength = UART_WORDLENGTH_8B;
-	uch.phy.uartH[2u].Init.StopBits = UART_STOPBITS_1;
-	uch.phy.uartH[2u].Init.Parity = UART_PARITY_NONE;
-	uch.phy.uartH[2u].Init.Mode = UART_MODE_TX_RX;
-	uch.phy.uartH[2u].Init.HwFlowCtl = UART_HWCONTROL_NONE;
-	uch.phy.uartH[2u].Init.OverSampling = UART_OVERSAMPLING_16;
+	uch.phy.ch_Enable[1u].hwctx = BSP_CH2_EN_PORT;
+	uch.phy.ch_Enable[1u].data.pin = BSP_CH2_EN_PIN;
+	uch.phy.ch_Enable[1u].data.cfg = LW_GPIO_CFG_OUTPUT_PP;
+	uch.phy.ch_Enable[1u].data.mode = LW_GPIO_MODE_10MHZ;
+    lw_GPIO_Init(&uch.phy.ch_Enable[1u]);
+    lw_GPIO_Write(&uch.phy.ch_Enable[1u], 0u);
 
-	HAL_UART_Init(&uch.phy.uartH[2u]);
 
-	uch.phy.gpioH[2u].pinData.Pin = GPIO_PIN_2;
-	uch.phy.gpioH[2u].pinData.Mode = GPIO_MODE_OUTPUT_PP;
-	uch.phy.gpioH[2u].pinData.Pull = GPIO_NOPULL;
-	uch.phy.gpioH[2u].pinData.Speed = GPIO_SPEED_FREQ_LOW;
-	uch.phy.gpioH[2u].port = GPIOB;
-	uch.phy.gpioH[2u].pinNum = 2u;
+	/* Channel [3] */
 
-    HAL_GPIO_Init(uch.phy.gpioH[2u].port, &uch.phy.gpioH[2u].pinData);
-    HAL_GPIO_WritePin(uch.phy.gpioH[2u].port, uch.phy.gpioH[2u].pinData.Pin, GPIO_PIN_RESET);
+	uch.phy.ch_UartTx[2u].hwctx = BSP_CH3_UART_TX_PORT;
+	uch.phy.ch_UartTx[2u].data.pin = BSP_CH3_UART_TX_PIN;
+	uch.phy.ch_UartTx[2u].data.cfg = LW_GPIO_CFG_ALT_PP;
+	uch.phy.ch_UartTx[2u].data.mode = LW_GPIO_MODE_50MHZ;
+    lw_GPIO_Init(&uch.phy.ch_UartTx[2u]);
+
+	uch.phy.ch_UartRx[2u].hwctx = BSP_CH3_UART_RX_PORT;
+	uch.phy.ch_UartRx[2u].data.pin = BSP_CH3_UART_RX_PIN;
+	uch.phy.ch_UartRx[2u].data.cfg = LW_GPIO_CFG_INPUT_FLOAT;
+	uch.phy.ch_UartRx[2u].data.mode = LW_GPIO_MODE_INPUT;
+    lw_GPIO_Init(&uch.phy.ch_UartRx[2u]);
+
+	uch.phy.ch_Uart[2u].hwctx = BSP_CH3_UART ;
+	uch.phy.ch_Uart[2u].data.baudRate = 115200;
+	uch.phy.ch_Uart[2u].data.dataBits = LW_UART_NUM_DATA_BITS_8;
+	uch.phy.ch_Uart[2u].data.stopBits = LW_UART_NUM_STOP_BITS_1;
+	uch.phy.ch_Uart[2u].data.parity = LW_UART_PARITY_NONE;
+	lw_UART_Init(&uch.phy.ch_Uart[2u]);
+
+	uch.phy.ch_Enable[2u].hwctx = BSP_CH3_EN_PORT;
+	uch.phy.ch_Enable[2u].data.pin = BSP_CH3_EN_PIN;
+	uch.phy.ch_Enable[2u].data.cfg = LW_GPIO_CFG_OUTPUT_PP;
+	uch.phy.ch_Enable[2u].data.mode = LW_GPIO_MODE_10MHZ;
+    lw_GPIO_Init(&uch.phy.ch_Enable[2u]);
+    lw_GPIO_Write(&uch.phy.ch_Enable[2u], 0u);
 
 }
+
 extern void uch_Init ( void ){
+
+	uch_PreInit();
+
+	uch_BSP_Init();
 
 	for ( uint8_t i = 0 ; i < UCH_MAX_NUM ; i++ ){
 		uch.config.channel_enable[i] = false;
@@ -114,9 +161,6 @@ extern void uch_Init ( void ){
 		uch.config.channel_config[i].nStopBits = UINT8_MAX;
 		uch.config.channel_config[i].parity = UINT8_MAX;
 	}
-
-	/* Init Channel Peripherals */
-	uch_phyInit();
 
 	/* Init json parser */
 	jsmn_init(&uch.json.parser);
@@ -185,21 +229,20 @@ extern void uch_SetChannelConfiguration ( uint8_t channelID , struct uch_config_
 
 extern void uch_SetChannelState ( uint8_t channelID , bool state ){
 	uch.config.channel_enable[channelID-1] = state;
-    HAL_GPIO_WritePin(uch.phy.gpioH[channelID-1].port, uch.phy.gpioH[channelID-1].pinData.Pin,
-    		state == true ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    lw_GPIO_Write(&uch.phy.ch_Enable[channelID-1],state);
 
 }
 volatile uint32_t uart_count = 0u;
 
 void USART3_IRQHandler( void ){
-	HAL_UART_IRQHandler(&uch.phy.uartH[0u]);
+	HAL_UART_IRQHandler(&uch.phy.ch_Uart[0u]);
 	uart_count++;
 }
 void USART2_IRQHandler( void ){
-	HAL_UART_IRQHandler(&uch.phy.uartH[1u]);
+	HAL_UART_IRQHandler(&uch.phy.ch_Uart[1u]);
 }
 void USART1_IRQHandler( void ){
-	HAL_UART_IRQHandler(&uch.phy.uartH[2u]);
+	HAL_UART_IRQHandler(&uch.phy.ch_Uart[2u]);
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
@@ -226,10 +269,10 @@ extern void uch_ApplyConfiguration ( uint8_t channelID ){
 
 	switch(uch.config.channel_config[channelID-1].nDataBits){
 		case e_uch_nDatabits_8:
-		dataBits = UART_WORDLENGTH_8B;
+		dataBits = LW_UART_NUM_DATA_BITS_8;
 		break;
 		case e_uch_nDatabits_9:
-		dataBits = UART_WORDLENGTH_9B;
+		dataBits = LW_UART_NUM_DATA_BITS_9;
 		break;
 		default:
 		break;
@@ -238,10 +281,10 @@ extern void uch_ApplyConfiguration ( uint8_t channelID ){
 	switch(uch.config.channel_config[channelID-1].nStopBits){
 
 		case e_uch_nStopbits_1:
-		stopBits = UART_STOPBITS_1;
+		stopBits = LW_UART_NUM_STOP_BITS_1;
 		break;
 		case e_uch_nStopbits_2:
-		stopBits = UART_STOPBITS_2;
+		stopBits = LW_UART_NUM_STOP_BITS_2;
 		break;
 		default:
 		break;
@@ -250,24 +293,24 @@ extern void uch_ApplyConfiguration ( uint8_t channelID ){
 	switch(uch.config.channel_config[channelID-1].parity){
 
 		case e_uch_parity_none:
-		parity = UART_PARITY_NONE;
+		parity = LW_UART_PARITY_NONE;
 		break;
 		case e_uch_parity_even:
-		parity = UART_PARITY_EVEN;
+		parity = LW_UART_PARITY_EVEN;
 		break;
 		case e_uch_parity_odd:
-		parity = UART_PARITY_ODD;
+		parity = LW_UART_PARITY_ODD;
 		break;
 		default:
 		break;
 	}
 
-	uch.phy.uartH[channelID-1].Init.BaudRate = baudRate;
-	uch.phy.uartH[channelID-1].Init.WordLength = dataBits;
-	uch.phy.uartH[channelID-1].Init.StopBits = stopBits;
-	uch.phy.uartH[channelID-1].Init.Parity = parity;
+	uch.phy.ch_Uart[channelID-1].data.baudRate = baudRate;
+	uch.phy.ch_Uart[channelID-1].data.dataBits = dataBits;
+	uch.phy.ch_Uart[channelID-1].data.stopBits = stopBits;
+	uch.phy.ch_Uart[channelID-1].data.parity = parity;
 
-	HAL_UART_Init(&uch.phy.uartH[channelID-1]);
+	lw_UART_Init(&uch.phy.ch_Uart[channelID-1]);
 
     HAL_Delay(500);
 	/* Apply Channel Enable */
@@ -275,24 +318,22 @@ extern void uch_ApplyConfiguration ( uint8_t channelID ){
 
 	HAL_Delay(500);
 
-	uint32_t r = uch.phy.uartH[channelID-1].Instance->DR; // Read any Sporadic Character
+	uint32_t r = uch.phy.ch_Uart[channelID-1].hwctx->DR; // Read any Sporadic Character
 	UNUSED(r);
 
-	__HAL_UART_ENABLE_IT(&uch.phy.uartH[channelID-1],UART_IT_RXNE);
+	lw_UART_EnableIRQ(&uch.phy.ch_Uart[channelID-1],LW_UART_IRQ_RXNE);
 
     if ( channelID == CHANNEL_1 ){
-    	HAL_NVIC_SetPriority(USART3_IRQn, 1, 1);
-    	HAL_NVIC_EnableIRQ(USART3_IRQn);
-    	UART_Start_Receive_IT(&uch.phy.uartH[0u], arr, 10);
-
+    	NVIC_SetPriority(USART3_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 1U, 1U));
+    	NVIC_EnableIRQ(USART3_IRQn);
     }
     else if ( channelID == CHANNEL_2 ){
-    	HAL_NVIC_SetPriority(USART2_IRQn, 2, 2);
-    	HAL_NVIC_EnableIRQ(USART2_IRQn);
+    	NVIC_SetPriority(USART3_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 2U, 2U));
+    	NVIC_EnableIRQ(USART2_IRQn);
     }
     else if ( channelID == CHANNEL_3 ){
-    	HAL_NVIC_SetPriority(USART1_IRQn, 3, 3);
-    	HAL_NVIC_EnableIRQ(USART1_IRQn);
+    	NVIC_SetPriority(USART3_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 3U, 3U));
+    	NVIC_EnableIRQ(USART1_IRQn);
     }
 }
 

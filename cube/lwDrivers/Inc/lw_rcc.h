@@ -12,6 +12,10 @@
 #include "common.h"
 #include "stm32f1xx.h"
 
+
+uint32_t lw_RCC_Get_SYSCLK(void);
+uint32_t lw_RCC_Get_PCLK(void* perph);
+
 //Clock enable function for GPIO AFIO
 void lw_RCC_Enable_AFIO(void);
 

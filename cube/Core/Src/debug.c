@@ -13,9 +13,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-static UART_HandleTypeDef* debugh;
+static lw_uart* debugh;
 
-extern void Debug_Init(UART_HandleTypeDef * huart ){
+extern void Debug_Init(lw_uart * huart ){
 	debugh = huart;
 }
 
@@ -80,18 +80,7 @@ extern int Debug_Printf (char * str, ...){
 
     va_end(varlist);
 
-	HAL_StatusTypeDef ret = HAL_UART_Transmit(debugh, (const uint8_t*)&strbuff[0], ostr_i, _DEBUG_PRINTF_TIMEOUT_);
-
-	if ( ret != HAL_OK ){
-
-		if ( ret == HAL_TIMEOUT ){
-			Debug_Printf("DBG_TIMEOUT");
-		}
-		else{
-			errh_code = _DEUBG_PRINTF_ERRH_;
-			Error_Handler();
-		}
-	}
+	lw_UART_Transmit(debugh, (const uint8_t*)&strbuff[0], ostr_i);
 
     return ostr_i;
  }

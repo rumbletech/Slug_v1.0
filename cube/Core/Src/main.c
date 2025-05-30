@@ -126,21 +126,23 @@ int main(void)
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
-  MX_GPIO_Init();
+//  MX_GPIO_Init();
 //  MX_SPI1_Init();
-  MX_USART1_UART_Init();
-  MX_USART2_UART_Init();
-  MX_USART3_UART_Init();
+//  MX_USART1_UART_Init();
+//  MX_USART2_UART_Init();
+//  huart3.hwctx = _DEBUG_PRINTF_PORT_;
+//  huart3.data.baudRate = _DEBUG_PRINTF_BAUD_;
+//  huart3.data.dataBits = _DEBUG_PRINTF_WLEN_;
+//  huart3.data.stopBits = _DEBUG_PRINTF_STOPB_;
+//  huart3.data.parity = LW_UART_PARITY_NONE;
+//  lw_UART_Init(&huart3);
   MX_FATFS_Init();
-  MX_RTC_Init();
-  MX_USB_PCD_Init();
+//  MX_RTC_Init();
+//  MX_USB_PCD_Init();
   /* USER CODE BEGIN 2 */
 
   RGB_Init();
   RGB_Write(COLOR_CAYAN);
-#if defined(_OPTS_DEBUG_EN) && _OPTS_DEBUG_EN == true
-  Debug_Init(&huart3);
-#endif
   SDCD_Init();
   uch_Init();
 

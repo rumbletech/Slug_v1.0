@@ -9,6 +9,27 @@
 #include "lw_rcc.h"
 
 
+static uint32_t sysClk = 72000000ULL;
+static uint32_t apb1Clk = 36000000ULL;
+static uint32_t apb2Clk = 72000000ULL;
+
+uint32_t lw_RCC_Get_SYSCLK(void){
+	return sysClk;
+}
+
+uint32_t lw_RCC_Get_PCLK(void* perph){
+
+	if ((USART_TypeDef*)perph == USART1 ){
+		return apb2Clk;
+	}
+	else if ((USART_TypeDef*)perph == USART2 ){
+		return apb1Clk;
+	}
+	else if ((USART_TypeDef*)perph == USART3 ){
+		return apb1Clk;
+	}
+}
+
 /**
  * @brief Enables the clock for AFIO.
  */
