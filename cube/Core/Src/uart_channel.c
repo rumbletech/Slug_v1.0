@@ -13,6 +13,7 @@
 #include "jsmn.h"
 #include "lw_uart.h"
 #include "lw_gpio.h"
+#include "lw_sys.h"
 #include "bsp.h"
 #include <string.h>
 
@@ -235,18 +236,14 @@ extern void uch_SetChannelState ( uint8_t channelID , bool state ){
 volatile uint32_t uart_count = 0u;
 
 void USART3_IRQHandler( void ){
-	HAL_UART_IRQHandler(&uch.phy.ch_Uart[0u]);
+	//HAL_UART_IRQHandler(&uch.phy.ch_Uart[0u]);
 	uart_count++;
 }
 void USART2_IRQHandler( void ){
-	HAL_UART_IRQHandler(&uch.phy.ch_Uart[1u]);
+	//HAL_UART_IRQHandler(&uch.phy.ch_Uart[1u]);
 }
 void USART1_IRQHandler( void ){
-	HAL_UART_IRQHandler(&uch.phy.ch_Uart[2u]);
-}
-
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
-	Common_Printf("rx\r\n");
+	//HAL_UART_IRQHandler(&uch.phy.ch_Uart[2u]);
 }
 
 extern void uch_ApplyConfiguration ( uint8_t channelID ){
@@ -312,14 +309,13 @@ extern void uch_ApplyConfiguration ( uint8_t channelID ){
 
 	lw_UART_Init(&uch.phy.ch_Uart[channelID-1]);
 
-    HAL_Delay(500);
+	lw_Sys_Delay(500);
 	/* Apply Channel Enable */
 	uch_SetChannelState(channelID,true);
 
-	HAL_Delay(500);
+	lw_Sys_Delay(500);
 
 	uint32_t r = uch.phy.ch_Uart[channelID-1].hwctx->DR; // Read any Sporadic Character
-	UNUSED(r);
 
 	lw_UART_EnableIRQ(&uch.phy.ch_Uart[channelID-1],LW_UART_IRQ_RXNE);
 

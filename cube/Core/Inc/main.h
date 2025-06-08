@@ -27,12 +27,11 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f1xx_hal.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "GPIO.h"
-
+#include <stdint.h>
+#include <stddef.h>
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -43,7 +42,6 @@ extern "C" {
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
 extern uint8_t errh_code;
-extern GPIO_HandleTypeDef gpio_SPI1_CS;
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/

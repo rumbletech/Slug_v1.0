@@ -70,9 +70,9 @@ static _fsys_err Fsys_GetMeta ( void ){
 
 extern _fsys_err Fsys_Init( void ){
 
-	uint32_t tp = HAL_GetTick();
+	uint32_t tp = lw_Sys_Get_Ticks();
 	FRESULT res = f_mount(&fsys.drive.ffs, "0:/", FS_FORCE_MOUNT);
-	uint32_t ta = HAL_GetTick();
+	uint32_t ta = lw_Sys_Get_Ticks();
 
 	Common_Printf("f_mount %d ms" , ta-tp);
 

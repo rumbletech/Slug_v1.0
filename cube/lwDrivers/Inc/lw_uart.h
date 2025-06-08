@@ -9,6 +9,7 @@
 #define INC_LW_UART_H_
 
 #include <stdint.h>
+#include <stddef.h>
 #include <stm32f1xx.h>
 
 typedef enum {

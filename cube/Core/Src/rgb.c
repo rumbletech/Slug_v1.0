@@ -21,7 +21,6 @@ struct {
 } rgb ;
 
 static void RGB_PreInit( void ){
-
 	lw_RCC_Enable_GPIOB();
 }
 

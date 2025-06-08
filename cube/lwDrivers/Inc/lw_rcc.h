@@ -12,9 +12,16 @@
 #include "common.h"
 #include "stm32f1xx.h"
 
+//Initialize System Clock
+void lw_RCC_Init( void );
 
+// Get System Clock
 uint32_t lw_RCC_Get_SYSCLK(void);
+// Get Peripheral Clock
 uint32_t lw_RCC_Get_PCLK(void* perph);
+
+//Clock enable function for PWR
+void lw_RCC_Enable_PWR(void);
 
 //Clock enable function for GPIO AFIO
 void lw_RCC_Enable_AFIO(void);
@@ -31,6 +38,9 @@ void lw_RCC_Enable_SPI2(void);
 void lw_RCC_Enable_USART1(void);
 void lw_RCC_Enable_USART2(void);
 void lw_RCC_Enable_USART3(void);
+
+//Clock disable function for PWR
+void lw_RCC_Disable_PWR(void);
 
 // Clock disable functions for GPIO peripherals
 void lw_RCC_Disable_GPIOA(void);

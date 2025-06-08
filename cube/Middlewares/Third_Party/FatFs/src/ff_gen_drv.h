@@ -83,7 +83,7 @@ typedef struct
   uint8_t                 is_initialized[_VOLUMES];
   Diskio_drvTypeDef       *drv[_VOLUMES];
   uint8_t                 lun[_VOLUMES];
-  __IO uint8_t            nbr;
+  volatile uint8_t            nbr;
 
 }Disk_drvTypeDef;
 

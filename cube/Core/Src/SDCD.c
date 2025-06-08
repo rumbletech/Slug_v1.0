@@ -6,6 +6,7 @@
 #include "lw_gpio.h"
 #include "lw_spi.h"
 #include "lw_rcc.h"
+#include "lw_sys.h"
 #include "bsp.h"
 
 #define _SDCD_ERRH_ 0x02
@@ -155,11 +156,11 @@ static _sdcd_err SD_ReadyWait(void){
 	_sdcd_err err = SDCD_SUCCESS;
 	uint16_t timeOut = 1000;
 	uint32_t elapsedTicks;
-	uint32_t currentTicks = HAL_GetTick();
+	uint32_t currentTicks = lw_Sys_Get_Ticks();
 
 	do {
 		err = SDCD_Receive(&res,1u);
-		elapsedTicks = HAL_GetTick()-currentTicks;
+		elapsedTicks = lw_Sys_Get_Ticks()-currentTicks;
 	} while ( (res != 0xFF) && (elapsedTicks < timeOut) && (err == SDCD_SUCCESS));
 
 	if ( elapsedTicks >= timeOut ){
@@ -243,7 +244,7 @@ static inline uint8_t SD_CheckPower(void){
 
 static bool SD_PowerOn(){
 
-	HAL_Delay(5000);
+	lw_Sys_Delay(5000u);
 	uint8_t dummyBytes[10] = { [ 0 ... 9 ] = 0xFF };
 	uint8_t res ;
 	sdcd.pwrf = false;
@@ -451,12 +452,12 @@ static bool SD_RxDataBlock(BYTE *buff, uint32_t len){
 	uint16_t timeOut = 200;
 	uint8_t res = 0u;
 	uint32_t elapsedTicks;
-	uint32_t currentTicks = HAL_GetTick();
+	uint32_t currentTicks = lw_Sys_Get_Ticks();
 	_sdcd_err err = SDCD_SUCCESS;
 	/* loop until receive a response or timeout */
 	do {
 		err = SDCD_Receive(&res, 1u);
-		elapsedTicks = HAL_GetTick()-currentTicks;
+		elapsedTicks = lw_Sys_Get_Ticks()-currentTicks;
 	} while( ( res != 0xFE) &&
 			(elapsedTicks < timeOut));
 
