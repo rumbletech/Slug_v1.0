@@ -9,6 +9,9 @@
 #define INC_COMMON_H_
 
 #include "opts.h"
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
 
 #define _UNUSED_(PARAM) ((void)PARAM)
 

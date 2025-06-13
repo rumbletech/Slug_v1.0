@@ -11,6 +11,5 @@
 #include <stdbool.h>
 
 #define _OPTS_DEBUG_EN (true)
-#define _INIT_DEBUG_EN (true)
 
 #endif /* INC_OPTS_H_ */

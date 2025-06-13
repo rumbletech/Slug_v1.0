@@ -20,6 +20,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f1xx_it.h"
+#include "com_channel.h"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "common.h"
@@ -177,6 +179,22 @@ void PendSV_Handler(void)
 
   /* USER CODE END PendSV_IRQn 1 */
 }
+
+
+void USART1_IRQHandler( void ){
+	Com_Channel_IRQnHandler(USART1);
+}
+
+void USART2_IRQHandler( void ){
+	Com_Channel_IRQnHandler(USART2);
+
+}
+
+void USART3_IRQHandler( void ){
+	Com_Channel_IRQnHandler(USART3);
+
+}
+
 
 /**
   * @brief This function handles System tick timer.
