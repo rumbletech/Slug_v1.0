@@ -38,10 +38,6 @@ static void disableJTAG ( void ){
 
 }
 
-extern void SysTick_Handler(void){
-	ticks++;
-}
-
 uint64_t lw_Sys_Get_Ticks( void ){
 	return ticks;
 }
@@ -65,7 +61,14 @@ void lw_Sys_Init( void ){
 	/* Configure 1 ms ticksick */
 	SysTick_Config(lw_RCC_Get_SYSCLK()/LW_SYS_ticksICK_FREQ);
 	/* Set ticksick Prio */
-	lw_Sys_IRQ_Set_Priority(SysTick_IRQn, 8u , 0U);
+	lw_Sys_IRQ_Set_Priority(SysTick_IRQn, 13U , 0U);
+	lw_Sys_IRQ_Set_Priority(PendSV_IRQn,  15u , 0U);
+	lw_Sys_IRQ_Set_Priority(SVCall_IRQn,  14u , 0U);
+
+
+	lw_Sys_IRQ_Disable(SysTick_IRQn);
+	lw_Sys_IRQ_Disable(PendSV_IRQn);
+	lw_Sys_IRQ_Disable(SVCall_IRQn);
 
 	lw_RCC_Enable_AFIO();
 	lw_RCC_Enable_PWR();

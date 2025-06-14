@@ -72,6 +72,7 @@
 void NMI_Handler(void)
 {
   /* USER CODE BEGIN NonMaskableInt_IRQn 0 */
+	Common_Printf("NMI_Handler \r\n");
 
   /* USER CODE END NonMaskableInt_IRQn 0 */
   /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
@@ -87,6 +88,7 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
+	Common_Printf("HardFault_Handler \r\n");
 
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
@@ -102,6 +104,7 @@ void HardFault_Handler(void)
 void MemManage_Handler(void)
 {
   /* USER CODE BEGIN MemoryManagement_IRQn 0 */
+	Common_Printf("MemManage_Handler \r\n");
 
   /* USER CODE END MemoryManagement_IRQn 0 */
   while (1)
@@ -117,6 +120,7 @@ void MemManage_Handler(void)
 void BusFault_Handler(void)
 {
   /* USER CODE BEGIN BusFault_IRQn 0 */
+	Common_Printf("BusFault_Handler \r\n");
 
   /* USER CODE END BusFault_IRQn 0 */
   while (1)
@@ -132,6 +136,7 @@ void BusFault_Handler(void)
 void UsageFault_Handler(void)
 {
   /* USER CODE BEGIN UsageFault_IRQn 0 */
+	Common_Printf("UsageFault_Handler \r\n");
 
   /* USER CODE END UsageFault_IRQn 0 */
   while (1)
@@ -170,16 +175,6 @@ void DebugMon_Handler(void)
 /**
   * @brief This function handles Pendable request for system service.
   */
-void PendSV_Handler(void)
-{
-  /* USER CODE BEGIN PendSV_IRQn 0 */
-
-  /* USER CODE END PendSV_IRQn 0 */
-  /* USER CODE BEGIN PendSV_IRQn 1 */
-
-  /* USER CODE END PendSV_IRQn 1 */
-}
-
 
 void USART1_IRQHandler( void ){
 	Com_Channel_IRQnHandler(USART1);

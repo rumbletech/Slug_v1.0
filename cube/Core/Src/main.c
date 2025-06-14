@@ -30,6 +30,9 @@
 #include "com_channel.h"
 #include "jsmn.h"
 #include "fatfs.h"
+#include "FreeRTOS.h"
+#include "task.h"
+
 
 
 /* USER CODE END Includes */
@@ -81,6 +84,27 @@ static FATFS ffs;
 static FIL configJsonFile;
 static uint8_t configJsonBuffer[512u];
 static uint32_t configJsonFileLength;
+
+/* Dimensions of the buffer that the task being created will use as its stack.
+   NOTE: This is the number of words the stack will hold, not the number of
+   bytes. For example, if each stack item is 32-bits, and this is set to 100,
+   then 400 bytes (100 * 32-bits) will be allocated. */
+#define STACK_SIZE 1024
+
+/* Structure that will hold the TCB of the task being created. */
+StaticTask_t xTaskBuffer;
+StaticTask_t xTaskBuffer2;
+
+
+/* Buffer that the task being created will use as its stack. Note this is
+   an array of StackType_t variables. The size of StackType_t is dependent on
+   the RTOS port. */
+StackType_t xStack[ STACK_SIZE ];
+StackType_t xStack2[ STACK_SIZE ];
+
+
+
+static TaskHandle_t xTaskHandle1 = NULL;
 
 
 
@@ -300,6 +324,38 @@ static void fsys_load_config( void ){
 	res = f_close(&configJsonFile);
 }
 
+static uint8_t x = 2 ;
+
+void vTaskCode(void *pvParameters){
+
+	  Common_Printf("FUCK2222222\R\N");
+
+	for(;;){
+		if ( x%2 == 0 ){
+			RGB_Write(COLOR_CAYAN);
+			vTaskDelay(500);
+			RGB_Write(COLOR_MAGNETA);
+			vTaskDelay(500);
+			x++;
+		}
+	}
+}
+
+void vTaskCode2(void *pvParameters){
+
+	  Common_Printf("FUCK33333\R\N");
+
+	for(;;){
+		if ( x%2 == 1u ){
+			RGB_Write(COLOR_YELLOW);
+			vTaskDelay(500);
+			RGB_Write(COLOR_BLUE);
+			vTaskDelay(500);
+			x++;
+		}
+	}
+}
+
 /**
   * @brief  The application entry point.
   * @retval int
@@ -315,6 +371,10 @@ int main(void)
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   SystemInit();
+
+
+  __disable_irq();
+
   //HAL_MspInit();
   /* USER CODE BEGIN Init */
 
@@ -340,14 +400,41 @@ int main(void)
 //  huart3.data.parity = LW_UART_PARITY_NONE;
 //  lw_UART_Init(&huart3);
   MX_FATFS_Init();
+  RGB_Init();
+  RGB_Write(COLOR_CAYAN);
+  Com_Channel_Init();
+
+
+  TaskHandle_t handle = xTaskCreateStatic(
+                       vTaskCode,       /* Function that implements the task. */
+                       "NAME",          /* Text name for the task. */
+                       STACK_SIZE,      /* Number of indexes in the xStack array. */
+                       ( void * ) 1,    /* Parameter passed into the task. */
+                       2,               /* Priority at which the task is created. */
+                       xStack,          /* Array to use as the task's stack. */
+                       &xTaskBuffer );  /* Variable to hold the task's data structure. */
+
+  TaskHandle_t handle2 = xTaskCreateStatic(
+                       vTaskCode2,       /* Function that implements the task. */
+                       "NAME",          /* Text name for the task. */
+                       STACK_SIZE,      /* Number of indexes in the xStack array. */
+                       ( void * ) 1,    /* Parameter passed into the task. */
+                       2,               /* Priority at which the task is created. */
+                       xStack2,          /* Array to use as the task's stack. */
+                       &xTaskBuffer2 );  /* Variable to hold the task's data structure. */
+
+  /* Start the scheduler */
+  vTaskStartScheduler();
+  Common_Printf("FUCK\R\N");
+
+  while(1){
+		RGB_Write(COLOR_RED);
+  }
 //  MX_RTC_Init();
 //  MX_USB_PCD_Init();
   /* USER CODE BEGIN 2 */
 
-  RGB_Init();
-  RGB_Write(COLOR_CAYAN);
   SDCD_Init();
-  Com_Channel_Init();
   jsmn_init(&json_parser);
   fsys_init();
 
@@ -431,6 +518,7 @@ void Error_Handler(void)
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
+  Common_Printf("FUCK MY ASS \r\n");
   while (1)
   {
   }

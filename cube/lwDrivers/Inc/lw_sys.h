@@ -15,6 +15,7 @@ void lw_Sys_IRQ_Enable( IRQn_Type IRQn );
 void lw_Sys_IRQ_Disable( IRQn_Type IRQn );
 void lw_Sys_IRQ_Set_Priority( IRQn_Type IRQn , uint32_t preemptPrio , uint32_t subPrio );
 void lw_Sys_Init( void );
+extern void lw_Sys_SysTick_Handler( void );
 
 uint64_t lw_Sys_Get_Ticks( void );
 void lw_Sys_Delay( uint64_t timeMs );
