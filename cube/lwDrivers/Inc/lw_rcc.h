@@ -55,4 +55,7 @@ void lw_RCC_Disable_USART1(void);
 void lw_RCC_Disable_USART2(void);
 void lw_RCC_Disable_USART3(void);
 
+void lw_RCC_Enable_AFIO(void);
+void lw_RCC_Enable_PWR(void);
+
 #endif /* INC_LW_RCC_H_ */

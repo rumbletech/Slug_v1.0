@@ -27,6 +27,7 @@
 #include "SDCD.h"
 #include "rgb.h"
 #include "lw_sys.h"
+#include "lw_rcc.h"
 #include "com_channel.h"
 #include "jsmn.h"
 #include "fatfs.h"
@@ -257,10 +258,29 @@ static void TEST_RGB ( void ){
 	  RGB_Write(color++);
 }
 
+void vApplicationTickHook ( void ){
+	lw_Sys_SysTick_Handler();
+}
 /* Executed as First Step During Startup ( Before Main ) */
 extern void SystemInit ( void ){
-	/* Init NVIC , System Clock and SysTick */
-	lw_Sys_Init();
+	/* Init System Clock and Bus Clocks */
+	lw_RCC_Init();
+	/* Set NVIC Priority Group to 4 Preemption Prio Bits and 0 SubPriority Bits */
+	lw_Sys_IRQ_Set_Priority_Group(LW_SYS_NVIC_PRIO_GROUP_4);
+
+	/* Set Interrupt Priorities */
+	lw_Sys_IRQ_Set_Priority(SysTick_IRQn, 15U , 0U);
+	lw_Sys_IRQ_Set_Priority(PendSV_IRQn,  15u , 0U);
+	lw_Sys_IRQ_Set_Priority(SVCall_IRQn,  15u , 0U);
+
+	/* Enable AFIO and PWR Domains */
+	lw_RCC_Enable_AFIO();
+	lw_RCC_Enable_PWR();
+
+	/* Remap JTAG to SWD */
+	lw_Sys_Disable_JTAG();
+
+	return;
 }
 
 
@@ -333,9 +353,9 @@ void vTaskCode(void *pvParameters){
 	for(;;){
 		if ( x%2 == 0 ){
 			RGB_Write(COLOR_CAYAN);
-			vTaskDelay(500);
+			lw_Sys_Delay(500);
 			RGB_Write(COLOR_MAGNETA);
-			vTaskDelay(500);
+			lw_Sys_Delay(500);
 			x++;
 		}
 	}
@@ -348,9 +368,9 @@ void vTaskCode2(void *pvParameters){
 	for(;;){
 		if ( x%2 == 1u ){
 			RGB_Write(COLOR_YELLOW);
-			vTaskDelay(500);
+			lw_Sys_Delay(500);
 			RGB_Write(COLOR_BLUE);
-			vTaskDelay(500);
+			lw_Sys_Delay(500);
 			x++;
 		}
 	}
