@@ -14,7 +14,7 @@
 #include "bsp.h"
 #include <string.h>
 
-#define RX_FIFO_SIZE 2048U
+#define RX_FIFO_SIZE 512U
 
 
 struct Com_Channel_Phy_s {
@@ -32,7 +32,6 @@ struct Com_Channel_s {
 
 };
 
-
 static const uint8_t com_channel_init_gpio_enable_pins[COM_CHANNEL_LENGTH] = {BSP_CH1_EN_PIN,BSP_CH2_EN_PIN,BSP_CH3_EN_PIN};
 static GPIO_TypeDef* const com_channel_init_gpio_enable_ports[COM_CHANNEL_LENGTH] = {BSP_CH1_EN_PORT,BSP_CH2_EN_PORT,BSP_CH3_EN_PORT};
 
@@ -43,13 +42,13 @@ static const uint8_t com_channel_init_gpio_rx_pins[COM_CHANNEL_LENGTH] = {BSP_CH
 static GPIO_TypeDef* const com_channel_init_gpio_rx_ports[COM_CHANNEL_LENGTH] = {BSP_CH1_UART_RX_PORT,BSP_CH2_UART_RX_PORT,BSP_CH3_UART_RX_PORT};
 
 static USART_TypeDef* const com_channel_init_uart[COM_CHANNEL_LENGTH] = {BSP_CH1_UART,BSP_CH2_UART,BSP_CH3_UART};
+
 static const uint32_t com_channel_init_irqn[COM_CHANNEL_LENGTH] = {USART3_IRQn,USART2_IRQn,USART1_IRQn};
 static const uint32_t com_channel_init_irqn_prios[COM_CHANNEL_LENGTH] = {3u,4u,5u};
 
 
 static struct Com_Channel_s COM_Channels[COM_CHANNEL_LENGTH];
 static uint8_t COM_Channels_RxBuffer[COM_CHANNEL_LENGTH][RX_FIFO_SIZE];
-
 
 
 static void Com_Channel_PreInit( void ){

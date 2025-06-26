@@ -16,7 +16,7 @@
 #include "lw_uart.h"
 
 #define _DEBUG_PRINTF_TIMEOUT_      500u
-#define _DEBUG_PRINTF_BUFFLEN_      2048u
+#define _DEBUG_PRINTF_BUFFLEN_      128U
 #define _DEUBG_PRINTF_ERRH_         1u
 
 extern void Debug_Init(lw_uart* huart );

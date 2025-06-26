@@ -36,6 +36,11 @@ extern void lw_Sys_Disable_JTAG ( void ){
 	AFIO->MAPR |= AFIO_MAPR_SWJ_CFG_JTAGDISABLE_Msk;
 }
 
+extern void lw_Sys_ReMap_USART1( void ){
+	/* Remap USART1 to pins PB6,PB7 */
+	AFIO->MAPR |= AFIO_MAPR_USART1_REMAP_Msk;
+}
+
 void lw_Sys_SysTick_Handler( void ){
 	ticks++;
 }

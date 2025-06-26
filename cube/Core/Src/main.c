@@ -29,12 +29,12 @@
 #include "lw_sys.h"
 #include "lw_rcc.h"
 #include "com_channel.h"
-#include "jsmn.h"
-#include "fatfs.h"
 #include "FreeRTOS.h"
+#include "queue.h"
 #include "task.h"
-
-
+#include "diskt.h"
+#include "fsmt.h"
+#include <string.h>
 
 /* USER CODE END Includes */
 
@@ -68,44 +68,40 @@
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-#define JSON_TOK_MAX_SIZE 128U
-#define FS_FORCE_MOUNT 1u
-#define FS_LABEL_SIZE 128u
-#define FS_CONFIG_MAX_BUFF_SIZE 512u
 
-static lw_uart_data_t com_channels_cfg[COM_CHANNEL_LENGTH];
-static bool com_channels_cfg_valid[COM_CHANNEL_LENGTH];
-static jsmn_parser json_parser;
-static jsmntok_t json_tokens[JSON_TOK_MAX_SIZE];
 static const uint32_t supported_baud_rates[] = {1200,2400,4800,9600,14400,19200,28800,38400,57600,115200,128000,230400,250000,460800,500000};
-static TCHAR label[FS_LABEL_SIZE];
-static DWORD volumeSerialNumber;
-static FATFS ffs;
-
-static FIL configJsonFile;
-static uint8_t configJsonBuffer[512u];
-static uint32_t configJsonFileLength;
-
-/* Dimensions of the buffer that the task being created will use as its stack.
-   NOTE: This is the number of words the stack will hold, not the number of
-   bytes. For example, if each stack item is 32-bits, and this is set to 100,
-   then 400 bytes (100 * 32-bits) will be allocated. */
-#define STACK_SIZE 1024
-
-/* Structure that will hold the TCB of the task being created. */
-StaticTask_t xTaskBuffer;
-StaticTask_t xTaskBuffer2;
-
-
-/* Buffer that the task being created will use as its stack. Note this is
-   an array of StackType_t variables. The size of StackType_t is dependent on
-   the RTOS port. */
-StackType_t xStack[ STACK_SIZE ];
-StackType_t xStack2[ STACK_SIZE ];
 
 
 
-static TaskHandle_t xTaskHandle1 = NULL;
+#define QUEUE_DISK_REQ_ITEM_SIZE (sizeof(struct diskt_request_s))
+#define QUEUE_DISK_REQ_LENGTH 4U
+
+#define QUEUE_DISK_RESP_ITEM_SIZE (sizeof(struct diskt_response_s))
+#define QUEUE_DISK_RESP_LENGTH 4U
+
+#define TASK_DISKT_STACK_SIZE 512U
+#define TASK_DISKT_PRIO 2U
+
+static uint8_t queue_disk_req_buff[QUEUE_DISK_REQ_ITEM_SIZE*QUEUE_DISK_REQ_LENGTH];
+static QueueHandle_t queue_disk_req;
+static StaticQueue_t queue_disk_req_static;
+
+static uint8_t queue_disk_resp_buff[QUEUE_DISK_RESP_LENGTH*QUEUE_DISK_RESP_ITEM_SIZE];
+static QueueHandle_t queue_disk_resp;
+static StaticQueue_t queue_disk_resp_static;
+
+static TaskHandle_t taskHandle_DISKT = NULL;
+static StackType_t taskStack_DISKT [ TASK_DISKT_STACK_SIZE ];
+static StaticTask_t taskBuffer_DISKT;
+
+#define TASK_FSMT_STACK_SIZE 256U
+#define TASK_FSMT_PRIO 2U
+static TaskHandle_t taskHandle_FSMT = NULL;
+static StackType_t taskStack_FSMT [ TASK_FSMT_STACK_SIZE ];
+static StaticTask_t taskBuffer_FSMT;
+
+
+
 
 
 
@@ -148,97 +144,11 @@ extern volatile uint32_t uart_count;
 /* Init json parser */
 //	jsmn_init(&uch.json.parser);
 
-static uint32_t str2int(char* str, uint32_t len)
-{
-    int i;
-    int ret = 0;
-    for(i = 0; i < len; ++i)
-    {
-        ret = ret * 10 + (str[i] - '0');
-    }
-    return ret;
-}
 
 
-extern void Enumerate_COM_Channels( void ){
 
-	uint32_t jsnFileLen = configJsonFileLength;
-	char* jsnFile = (char*)&configJsonBuffer[0u];
 
-	int tokenCount = jsmn_parse(&json_parser,jsnFile,jsnFileLen,&json_tokens[0U],
-			sizeof(json_tokens)/sizeof(json_tokens[0u]));
 
-	for ( int i = 0 ; i < tokenCount ; i++ ){
-		if ( json_tokens[i].type == JSMN_OBJECT ){
-			lw_uart_data_t cfg;
-			int32_t channelID = -1;
-			cfg.baudRate = UINT32_MAX;
-			cfg.dataBits = UINT8_MAX;
-			cfg.stopBits = UINT8_MAX;
-			cfg.parity = UINT8_MAX;
-
-			for ( int j = 0; j < json_tokens[i].size*2u ; j+=2 ){
-				uint8_t key = i+j+1u;
-				uint32_t key_sz = json_tokens[key].end-json_tokens[key].start;
-				uint8_t value = i+j+2u;
-				uint32_t value_sz = json_tokens[value].end - json_tokens[value].start;
-				uint32_t kValue = UINT32_MAX;
-				if ( !strncmp(&jsnFile[json_tokens[key].start],"channelId",key_sz) ){
-					int32_t kValue = jsnFile[json_tokens[value].start]- '0';
-					channelID = kValue;
-				}
-				else if (!strncmp(&jsnFile[json_tokens[key].start],"baudrate",
-					(unsigned int)(json_tokens[key].end-json_tokens[key].start))){
-					kValue = str2int( &jsnFile[json_tokens[value].start], value_sz);
-					cfg.baudRate = kValue;
-				}
-				else if (!strncmp(&jsnFile[json_tokens[key].start],"parity",key_sz)){
-
-					if(!strncmp(&jsnFile[json_tokens[value].start],"even",value_sz)){
-						kValue = LW_UART_PARITY_EVEN;
-					}
-					else if(!strncmp(&jsnFile[json_tokens[value].start],"odd",value_sz)){
-						kValue = LW_UART_PARITY_ODD;
-					}
-					else if(!strncmp(&jsnFile[json_tokens[value].start],"none",value_sz)){
-						kValue = LW_UART_PARITY_NONE;
-					}
-					cfg.parity = kValue;
-				}
-				else if( !strncmp(&jsnFile[json_tokens[key].start],"numberOfDataBits",key_sz)){
-					kValue = str2int( &jsnFile[json_tokens[value].start], value_sz);
-					if ( kValue == 8u ){
-						cfg.dataBits = LW_UART_NUM_DATA_BITS_8;
-					}
-					else if ( kValue == 9u ){
-						cfg.dataBits = LW_UART_NUM_DATA_BITS_9;
-					}
-				}
-				else if (!strncmp(&jsnFile[json_tokens[key].start],"numberOfStopBits",key_sz)){
-					kValue = str2int( &jsnFile[json_tokens[value].start],value_sz);
-					if ( kValue == 1u ){
-						cfg.stopBits = LW_UART_NUM_STOP_BITS_1;
-					}
-					else if ( kValue == 2u ){
-						cfg.stopBits = LW_UART_NUM_STOP_BITS_2;
-					}
-				}
-				else{
-
-				}
-			}
-			/* Copy configuration of valid channels */
-			if ( channelID >= 1u || channelID <= 3u ){
-				com_channels_cfg[channelID-1u] = cfg;
-				com_channels_cfg_valid[channelID-1u] = true;
-			}
-		}
-		else{
-			continue;
-		}
-	}
-
-}
 
 static void TEST_SDCARD( void ){
 	static uint32_t index = 0u;
@@ -277,104 +187,36 @@ extern void SystemInit ( void ){
 	lw_RCC_Enable_AFIO();
 	lw_RCC_Enable_PWR();
 
-	/* Remap JTAG to SWD */
-	lw_Sys_Disable_JTAG();
+	/* AIFO and RE-MAP */
+	lw_Sys_Disable_JTAG(); /* Remap JTAG to SWD */
+	lw_Sys_ReMap_USART1(); /* Remap USART1 */
 
 	return;
 }
 
 
-static void fsys_init ( void ){
+void vTask_DISKT ( void *pvParameters ){
 
-	FRESULT res = f_mount(&ffs, "0:/", FS_FORCE_MOUNT);
-
-	if ( res != FR_OK ){
-		Common_Printf("f_mount failed %d\r\n", res);
-		return;
-	}
-
-	res = f_getlabel("",&label[0u], &volumeSerialNumber);
-
-	if ( res != FR_OK ){
-		Common_Printf("f_getlabel failed %d\r\n", res);
-		return;
-	}
-
-	Common_Printf("Loading Successful\r\n");
-
-	Common_Printf("SDC Detected : \r\n");
-	Common_Printf("fs_id : %d\r\n" , ffs.id);
-	Common_Printf("fs_type : %d\r\n" , ffs.fs_type);
-	Common_Printf("fs_drv : %d\r\n" , ffs.drv);
-	Common_Printf("fs_fsize : %d\r\n" , ffs.fsize);
-	Common_Printf("fs_csize : %d\r\n" , ffs.csize);
-	Common_Printf("fs_free_clust : %d\r\n" , ffs.free_clust);
-	Common_Printf("fs_label : %s\r\n" , &label[0u]);
-	Common_Printf("fs_serialNumber : %d\r\n" , volumeSerialNumber);
-
-}
-
-static void fsys_load_config( void ){
-
-	UINT rb = 0U;
-	FRESULT res;
-
-#if _USE_LFN != 0
-    res = f_open(&configJsonFile,"0:/slug/config.json",FA_READ);
-#else
-    res = f_open(&configJsonFile,"0:/slug/CONFIG~1.JSO",FA_READ);
-#endif
-	if ( res != FR_OK ){
-		Common_Printf("f_open failed %d \r\n" , res);
-		return;
-	}
-
-	res = f_read(&configJsonFile,&configJsonBuffer[0u],sizeof(configJsonFile),&rb);
-
-	if ( res != FR_OK ){
-		Common_Printf("f_read failed %d\r\n" , res);
-		return;
-	}
-
-	configJsonFileLength = rb;
-
-	Common_Printf("FileSize : %d \r\n  File : %s \r\n", rb , configJsonBuffer);
-	Common_Printf("Strlen : %d \r\n" , strlen(&configJsonBuffer[0u]));
-
-	res = f_close(&configJsonFile);
-}
-
-static uint8_t x = 2 ;
-
-void vTaskCode(void *pvParameters){
-
-	  Common_Printf("FUCK2222222\R\N");
+	Common_Printf("vTask_DSKT\r\n");
 
 	for(;;){
-		if ( x%2 == 0 ){
-			RGB_Write(COLOR_CAYAN);
-			lw_Sys_Delay(500);
-			RGB_Write(COLOR_MAGNETA);
-			lw_Sys_Delay(500);
-			x++;
-		}
+		DISKT_Process();
 	}
+
 }
 
-void vTaskCode2(void *pvParameters){
+void vTask_FSMT ( void *pvParameters ){
 
-	  Common_Printf("FUCK33333\R\N");
+	Common_Printf("vTask_FSMT\r\n");
 
 	for(;;){
-		if ( x%2 == 1u ){
-			RGB_Write(COLOR_YELLOW);
-			lw_Sys_Delay(500);
-			RGB_Write(COLOR_BLUE);
-			lw_Sys_Delay(500);
-			x++;
-		}
+		fsm();
+		vTaskDelay(FSM_CYCLE_DURATION_MS);
 	}
+
 }
+
+
 
 /**
   * @brief  The application entry point.
@@ -392,140 +234,45 @@ int main(void)
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   SystemInit();
 
-
   __disable_irq();
 
-  //HAL_MspInit();
-  /* USER CODE BEGIN Init */
-
-  //SystemClock_Config();
-  /* USER CODE END Init */
-
-  /* Configure the system clock */
- // SystemClock_Config();
-
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
-//  MX_GPIO_Init();
-//  MX_SPI1_Init();
-//  MX_USART1_UART_Init();
-//  MX_USART2_UART_Init();
-//  huart3.hwctx = _DEBUG_PRINTF_PORT_;
-//  huart3.data.baudRate = _DEBUG_PRINTF_BAUD_;
-//  huart3.data.dataBits = _DEBUG_PRINTF_WLEN_;
-//  huart3.data.stopBits = _DEBUG_PRINTF_STOPB_;
-//  huart3.data.parity = LW_UART_PARITY_NONE;
-//  lw_UART_Init(&huart3);
-  MX_FATFS_Init();
-  RGB_Init();
-  RGB_Write(COLOR_CAYAN);
-  Com_Channel_Init();
+  RGB_Init(); /* Initializes RGB Indicator Module */
+  SDCD_Init(); /* Initializes SDC SPI Module */
+  Com_Channel_Init(); /* Initializes Com Channels , as well as debug channel if enabled */
+  MX_FATFS_Init(); /* Link FatFS Driver */
 
 
-  TaskHandle_t handle = xTaskCreateStatic(
-                       vTaskCode,       /* Function that implements the task. */
-                       "NAME",          /* Text name for the task. */
-                       STACK_SIZE,      /* Number of indexes in the xStack array. */
-                       ( void * ) 1,    /* Parameter passed into the task. */
-                       2,               /* Priority at which the task is created. */
-                       xStack,          /* Array to use as the task's stack. */
-                       &xTaskBuffer );  /* Variable to hold the task's data structure. */
+  /* Create Queues */
 
-  TaskHandle_t handle2 = xTaskCreateStatic(
-                       vTaskCode2,       /* Function that implements the task. */
-                       "NAME",          /* Text name for the task. */
-                       STACK_SIZE,      /* Number of indexes in the xStack array. */
-                       ( void * ) 1,    /* Parameter passed into the task. */
-                       2,               /* Priority at which the task is created. */
-                       xStack2,          /* Array to use as the task's stack. */
-                       &xTaskBuffer2 );  /* Variable to hold the task's data structure. */
+  queue_disk_req = xQueueCreateStatic( QUEUE_DISK_REQ_LENGTH,QUEUE_DISK_REQ_ITEM_SIZE,queue_disk_req_buff,&queue_disk_req_static );
+  queue_disk_resp = xQueueCreateStatic( QUEUE_DISK_RESP_LENGTH,QUEUE_DISK_RESP_ITEM_SIZE,queue_disk_resp_buff,&queue_disk_resp_static );
+
+
+  DISKT_Init ( queue_disk_req , queue_disk_resp );
+  fsm_init();
+
+  /* Create Tasks */
+  taskHandle_DISKT = xTaskCreateStatic(
+		  	  	  	   vTask_DISKT,           /* Function that implements the task. */
+                       "DISKT",               /* Text name for the task. */
+                       TASK_DISKT_STACK_SIZE, /* Number of indexes in the xStack array. */
+                       ( void * ) 1,          /* Parameter passed into the task. */
+                       TASK_DISKT_PRIO,       /* Priority at which the task is created. */
+					   taskStack_DISKT,       /* Array to use as the task's stack. */
+                       &taskBuffer_DISKT );   /* Variable to hold the task's data structure. */
+
+  taskHandle_FSMT = xTaskCreateStatic(
+		  	  	  	   vTask_FSMT,           /* Function that implements the task. */
+                       "FSMT",               /* Text name for the task. */
+                       TASK_FSMT_STACK_SIZE, /* Number of indexes in the xStack array. */
+                       ( void * ) 1,         /* Parameter passed into the task. */
+                       TASK_FSMT_PRIO,       /* Priority at which the task is created. */
+					   taskStack_FSMT,       /* Array to use as the task's stack. */
+                       &taskBuffer_FSMT );   /* Variable to hold the task's data structure. */
 
   /* Start the scheduler */
   vTaskStartScheduler();
-  Common_Printf("FUCK\R\N");
 
-  while(1){
-		RGB_Write(COLOR_RED);
-  }
-//  MX_RTC_Init();
-//  MX_USB_PCD_Init();
-  /* USER CODE BEGIN 2 */
-
-  SDCD_Init();
-  jsmn_init(&json_parser);
-  fsys_init();
-
-
-  /* Load Config File into Memory */
-
-//#if _USE_LFN != 0
-//    res = f_open(&fsys.json.file,"0:/slug/config.json",FA_READ);
-//#else
-//    res = f_open(&fsys.json.file,"0:/slug/CONFIG~1.JSO",FA_READ);
-//#endif
-  fsys_load_config();
-  /* Enumerate Configuration from SD Card */
-  com_channels_cfg_valid[COM_CHANNEL_1] = false;
-  com_channels_cfg_valid[COM_CHANNEL_2] = false;
-  com_channels_cfg_valid[COM_CHANNEL_3] = false;
-
-  Enumerate_COM_Channels();
-
-  if ( com_channels_cfg_valid[COM_CHANNEL_1] ){
-	  Com_Channel_Configure(COM_CHANNEL_1, com_channels_cfg[COM_CHANNEL_1]);
-	  Com_Channel_Enable(COM_CHANNEL_1);
-  }
-  else{
-	  Com_Channel_StopLogging(COM_CHANNEL_1);
-	  Com_Channel_Disable(COM_CHANNEL_1);
-  }
-
-  if ( com_channels_cfg_valid[COM_CHANNEL_2] ){
-	  Com_Channel_Configure(COM_CHANNEL_2, com_channels_cfg[COM_CHANNEL_2]);
-	  Com_Channel_Enable(COM_CHANNEL_2);
-  }
-  else{
-	  Com_Channel_StopLogging(COM_CHANNEL_2);
-	  Com_Channel_Disable(COM_CHANNEL_2);
-  }
-
-  if ( com_channels_cfg_valid[COM_CHANNEL_3] ){
-	  Com_Channel_Configure(COM_CHANNEL_3, com_channels_cfg[COM_CHANNEL_3]);
-	  Com_Channel_Enable(COM_CHANNEL_3);
-
-  }
-  else{
-	  Com_Channel_StopLogging(COM_CHANNEL_3);
-	  Com_Channel_Disable(COM_CHANNEL_3);
-  }
-
-  /* Enumerate Channels from SDC */
-
-//  uch_ApplyConfiguration(CHANNEL_1);
-//  uch_ApplyConfiguration(CHANNEL_2);
-//  uch_ApplyConfiguration(CHANNEL_3);
-
-  Common_Printf("Enumeration Successful Debug Port Open\r\n");
-
-  //HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_SET);
-  /* USER CODE END 2 */
-
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-
-  while (1)
-  {
-	//  TEST_SDCARD();
-	  TEST_RGB();
-	  lw_Sys_Delay(1000u);
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-  }
-  /* USER CODE END 3 */
 }
 
 

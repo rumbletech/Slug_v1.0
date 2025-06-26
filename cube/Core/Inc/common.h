@@ -15,6 +15,14 @@
 
 #define _UNUSED_(PARAM) ((void)PARAM)
 
+typedef enum {
+ E_OK,
+ E_NOT_OK,
+ E_PENDING,
+ E_LENGTH,
+} ProcStatus_t;
+
+
 
 #if defined(_OPTS_DEBUG_EN) && _OPTS_DEBUG_EN == true
 #include "debug.h"

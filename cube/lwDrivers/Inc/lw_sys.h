@@ -23,8 +23,10 @@ extern void lw_Sys_IRQ_Disable( IRQn_Type IRQn );
 extern void lw_Sys_IRQ_Set_Priority( IRQn_Type IRQn , uint32_t preemptPrio , uint32_t subPrio );
 extern void lw_Sys_SysTick_Handler( void );
 extern void lw_Sys_Disable_JTAG ( void );
+extern void lw_Sys_ReMap_USART1( void );
 extern void lw_Sys_IRQ_Set_Priority_Group ( uint32_t group );
 extern uint64_t lw_Sys_Get_Ticks( void );
 extern void lw_Sys_Delay( uint64_t timeMs );
+
 
 #endif /* INC_LW_SYS_H_ */
