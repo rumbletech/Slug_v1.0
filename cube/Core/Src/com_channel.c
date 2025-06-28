@@ -14,7 +14,7 @@
 #include "bsp.h"
 #include <string.h>
 
-#define RX_FIFO_SIZE 512U
+#define RX_BUFFER_SIZE 512U
 
 
 struct Com_Channel_Phy_s {
@@ -28,7 +28,7 @@ struct Com_Channel_s {
 
 	/* Physical Conext of Channel */
 	struct Com_Channel_Phy_s phy;
-	struct fifo_s fifo;
+	struct ppbf_s pingPong;
 
 };
 
@@ -48,7 +48,7 @@ static const uint32_t com_channel_init_irqn_prios[COM_CHANNEL_LENGTH] = {3u,4u,5
 
 
 static struct Com_Channel_s COM_Channels[COM_CHANNEL_LENGTH];
-static uint8_t COM_Channels_RxBuffer[COM_CHANNEL_LENGTH][RX_FIFO_SIZE];
+static uint8_t COM_Channels_RxBuffer[COM_CHANNEL_LENGTH][2U][RX_BUFFER_SIZE];
 
 
 static void Com_Channel_PreInit( void ){
@@ -121,7 +121,7 @@ extern void Com_Channel_Init ( void ){
 
 	/* Init Fifos */
 	for ( uint8_t i = 0 ; i < COM_CHANNEL_LENGTH ; i++ ){
-		Fifo_Init(&COM_Channels[i].fifo, &COM_Channels_RxBuffer[i][0u], RX_FIFO_SIZE);
+		ppbf_init(&COM_Channels[i].pingPong,&COM_Channels_RxBuffer[i][0u][0u],&COM_Channels_RxBuffer[i][1u][0u],RX_BUFFER_SIZE,RX_BUFFER_SIZE);
 	}
 }
 
@@ -149,11 +149,6 @@ extern void Com_Channel_StopLogging( uint8_t comID ){
 	lw_UART_DisableIRQ(&COM_Channels[comID].phy.uartDev,LW_UART_IRQ_RXNE);
 }
 
-
-extern uint32_t Com_Channel_GetNumRx( uint8_t comID ){
-	return (uint32_t)Fifo_GetCount(&COM_Channels[comID].fifo);
-}
-
 extern void Com_Channel_IRQnHandler( USART_TypeDef* hwctx ){
 
 	uint8_t comID = hwctx == com_channel_init_uart[COM_CHANNEL_1] ? COM_CHANNEL_1 :
@@ -161,26 +156,36 @@ extern void Com_Channel_IRQnHandler( USART_TypeDef* hwctx ){
 			        hwctx == com_channel_init_uart[COM_CHANNEL_3] ? COM_CHANNEL_3 : COM_CHANNEL_1;
 
 
-	uint8_t data = COM_Channels[comID].phy.uartDev.hwctx->DR;
+	uint8_t data = lw_UART_Receieve(&COM_Channels[comID].phy.uartDev);
 
-	Fifo_Push(&COM_Channels[comID].fifo, data);
+	Common_Printf("d[%c]\r\n",data);
+
+	ppbf_write(&COM_Channels[comID].pingPong, &data, sizeof(data));
+
 
 }
 
+extern auint8_t Com_Channel_Read( uint8_t comID ){
 
-extern uint32_t Com_Channel_Read( uint8_t comID , uint8_t* dptr ){
+	auint8_t ret;
 
-	uint32_t count = 0u;
-	while( !Fifo_isEmpty(&COM_Channels[comID].fifo)){
-		Fifo_Pop(&COM_Channels[comID].fifo, dptr);
-		count++;
-		dptr++;
-	}
-	return count;
+	/* CRITICAL SECTION START */
+
+	/* Switch Ping Pong Buffers , get the one that is actively being written to */
+	ppbf_switch(&COM_Channels[comID].pingPong);
+
+	/* Return the read pointer and length */
+	ret.ptr = ppbf_get_read_ptr(&COM_Channels[comID].pingPong);
+	ret.len = ppbf_get_read_len(&COM_Channels[comID].pingPong);
+
+	/* CRITICAL SECTION END */
+
+
+	return ret;
 }
 
 
 extern uint32_t Com_Channel_GetErrors( uint8_t comID  ){
-	return 0u;
+	return ppbf_get_err(&COM_Channels[comID].pingPong);
 }
 

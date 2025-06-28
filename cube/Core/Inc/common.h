@@ -22,6 +22,10 @@ typedef enum {
  E_LENGTH,
 } ProcStatus_t;
 
+typedef struct {
+	uint8_t* ptr;
+	uint32_t len;
+} auint8_t ;
 
 
 #if defined(_OPTS_DEBUG_EN) && _OPTS_DEBUG_EN == true

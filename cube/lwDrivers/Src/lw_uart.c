@@ -64,6 +64,11 @@ void lw_UART_Init(lw_uart* inst) {
     inst->hwctx->CR1 |= USART_CR1_TE | USART_CR1_RE | USART_CR1_UE;
 }
 
+// Receive Data from Hardware
+uint8_t lw_UART_Receieve(lw_uart* inst ) {
+    return inst->hwctx->DR;
+}
+
 // Transmit data over UART
 void lw_UART_Transmit(lw_uart* inst, uint8_t* data, uint32_t length) {
     if (inst == NULL || inst->hwctx == NULL || data == NULL) {

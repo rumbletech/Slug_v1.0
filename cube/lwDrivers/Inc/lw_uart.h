@@ -50,5 +50,6 @@ void lw_UART_Init(lw_uart* inst);
 void lw_UART_Transmit(lw_uart* inst,uint8_t* data , uint32_t length);
 void lw_UART_EnableIRQ(lw_uart* inst , lw_uart_irq_t irq);
 void lw_UART_DisableIRQ(lw_uart* inst , lw_uart_irq_t irq);
+uint8_t lw_UART_Receieve(lw_uart* inst );
 
 #endif /* INC_LW_UART_H_ */

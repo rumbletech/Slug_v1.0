@@ -31,10 +31,8 @@ extern void Com_Channel_Configure( uint8_t comID , lw_uart_data_t cfg);
 extern void Com_Channel_StartLogging( uint8_t comID );
 /* Stops Logging on The Channel */
 extern void Com_Channel_StopLogging( uint8_t comID );
-/* Gets the amount of Data in FIFO */
-extern uint32_t Com_Channel_GetNumRx( uint8_t comID );
-/* Gets the Data from the FIFO , Returns the Number of Data in bytes that were read */
-extern uint32_t Com_Channel_Read( uint8_t comID , uint8_t* dptr );
+/* returns the data from the com module */
+extern auint8_t Com_Channel_Read( uint8_t comID );
 /* Returns Error Conditions on the com channel */
 extern uint32_t Com_Channel_GetErrors( uint8_t comID  );
 

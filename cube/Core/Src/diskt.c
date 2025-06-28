@@ -121,9 +121,9 @@ static void handleReqeust( struct diskt_request_s request , struct diskt_respons
 		{
 			Common_Printf("[DISK_REQUEST_OPEN]");
 
-			struct diskt_request_open_s* arg = (struct diskt_request_open_s*)request.args;
-
-			fres = f_open(arg->fptr,arg->path,arg->opts);
+			fres = f_open(request.reqArg.open_request.fptr,
+						  request.reqArg.open_request.path,
+						  request.reqArg.open_request.opts);
 
 			if ( fres != FR_OK ){
 				Common_Printf("[F]\r\n");
@@ -137,9 +137,10 @@ static void handleReqeust( struct diskt_request_s request , struct diskt_respons
 		{
 			Common_Printf("[DISK_REQUEST_READ]");
 
-			struct diskt_request_read_s* arg = (struct diskt_request_read_s*)request.args;
-
-			fres = f_read(arg->fptr,arg->readBuffer,arg->maxSize,&byteCount);
+			fres = f_read(request.reqArg.read_request.fptr,
+						  request.reqArg.read_request.readBuffer,
+						  request.reqArg.read_request.maxSize,
+						  &byteCount);
 
 			if ( fres != FR_OK ){
 				Common_Printf("[F]\r\n");
@@ -148,13 +149,44 @@ static void handleReqeust( struct diskt_request_s request , struct diskt_respons
 			Common_Printf("[S]\r\n");
 		}
 		break;
+
+		case e_diskt_write_file:
+		{
+			Common_Printf("[DISK_REQUEST_WRITE]");
+
+			fres = f_write(request.reqArg.write_request.fptr,
+						   request.reqArg.write_request.dptr,
+						   request.reqArg.write_request.btw,
+						   &byteCount);
+
+			if ( fres != FR_OK ){
+				Common_Printf("[F]\r\n");
+				break;
+			}
+			Common_Printf("[S]\r\n");
+		}
+		break;
+
+		case e_diskt_flush_file:
+		{
+			Common_Printf("[DISK_REQUEST_FLUSH]");
+
+			fres = f_sync(request.reqArg.flush_request.fptr);
+
+			if ( fres != FR_OK ){
+				Common_Printf("[F]\r\n");
+				break;
+			}
+			Common_Printf("[S]\r\n");
+
+		}
+		break;
+
 		case e_diskt_close_file:
 		{
 			Common_Printf("[DISK_REQUEST_CLOSE]");
 
-			struct diskt_request_close_s* arg = (struct diskt_request_close_s*)request.args;
-
-			fres = f_close(arg->fptr);
+			fres = f_close(request.reqArg.close_request.fptr);
 
 			if ( fres != FR_OK ){
 				Common_Printf("[F]\r\n");
@@ -170,6 +202,8 @@ static void handleReqeust( struct diskt_request_s request , struct diskt_respons
 		}
 		break;
 	}
+
+	Common_Printf("FRES[%d]\r\n",fres);
 
 	response->proc_rc = get_process_return(fres);
 	response->ffs_rc = fres;

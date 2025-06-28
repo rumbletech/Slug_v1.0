@@ -74,10 +74,10 @@ static const uint32_t supported_baud_rates[] = {1200,2400,4800,9600,14400,19200,
 
 
 #define QUEUE_DISK_REQ_ITEM_SIZE (sizeof(struct diskt_request_s))
-#define QUEUE_DISK_REQ_LENGTH 4U
+#define QUEUE_DISK_REQ_LENGTH 6U
 
 #define QUEUE_DISK_RESP_ITEM_SIZE (sizeof(struct diskt_response_s))
-#define QUEUE_DISK_RESP_LENGTH 4U
+#define QUEUE_DISK_RESP_LENGTH 6U
 
 #define TASK_DISKT_STACK_SIZE 512U
 #define TASK_DISKT_PRIO 2U
@@ -197,7 +197,7 @@ extern void SystemInit ( void ){
 
 void vTask_DISKT ( void *pvParameters ){
 
-	Common_Printf("vTask_DSKT\r\n");
+	DISKT_Init ( queue_disk_req , queue_disk_resp );
 
 	for(;;){
 		DISKT_Process();
@@ -207,7 +207,7 @@ void vTask_DISKT ( void *pvParameters ){
 
 void vTask_FSMT ( void *pvParameters ){
 
-	Common_Printf("vTask_FSMT\r\n");
+	fsm_init();
 
 	for(;;){
 		fsm();
@@ -247,9 +247,6 @@ int main(void)
   queue_disk_req = xQueueCreateStatic( QUEUE_DISK_REQ_LENGTH,QUEUE_DISK_REQ_ITEM_SIZE,queue_disk_req_buff,&queue_disk_req_static );
   queue_disk_resp = xQueueCreateStatic( QUEUE_DISK_RESP_LENGTH,QUEUE_DISK_RESP_ITEM_SIZE,queue_disk_resp_buff,&queue_disk_resp_static );
 
-
-  DISKT_Init ( queue_disk_req , queue_disk_resp );
-  fsm_init();
 
   /* Create Tasks */
   taskHandle_DISKT = xTaskCreateStatic(

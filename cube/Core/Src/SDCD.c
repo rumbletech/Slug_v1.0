@@ -195,12 +195,14 @@ static _sdcd_err SD_SendCmd(SD_Card_CMD cmd , uint32_t arg , uint8_t* ret){
 	err = SDCD_Transmit(&command[0],6);
 
 	if ( err != SDCD_SUCCESS ){
+		Common_Printf("failed here 3\r\n");
 		goto SD_SendCmd_exit_;
 	}
 
 	if( cmd == SDC_CMD_STOP_TRANSMISSION ) {
 		err = SDCD_Receive(&res , 1u);
 		if ( err != SDCD_SUCCESS ){
+			Common_Printf("failed here 4\r\n");
 			goto SD_SendCmd_exit_;
 		}
 	}
@@ -220,6 +222,7 @@ static _sdcd_err SD_SendCmd(SD_Card_CMD cmd , uint32_t arg , uint8_t* ret){
 
 
 		if ( n  == 0u ){
+			Common_Printf("failed here 5\r\n");
 			err|= SDCD_CMD_TIMEOUT;
 		}
 	}
@@ -229,6 +232,7 @@ static _sdcd_err SD_SendCmd(SD_Card_CMD cmd , uint32_t arg , uint8_t* ret){
 SD_SendCmd_exit_:
 
 	if ( err != SDCD_SUCCESS ){
+		Common_Printf("failed here 6\r\n");
 		err |= SDCD_CMD_FAIL;
 	}
 
@@ -412,7 +416,10 @@ static bool SD_TxDataBlock(const BYTE *buff,uint8_t token)
 	uint8_t response;
 	_sdcd_err err = SDCD_SUCCESS;
 	(void)err;
-	if(SD_ReadyWait() != 0xFF) {
+
+	err = SD_ReadyWait();
+
+	if ( err != SDCD_SUCCESS ){
 		return false;
 	}
 	
@@ -432,15 +439,13 @@ static bool SD_TxDataBlock(const BYTE *buff,uint8_t token)
 			if((response & 0x1F) == 0x05 ) //If lower nibble of the response equals 5 then the data was received successfully
 				break; 
 		}
-		//Clear RX buffer
-//		while(__HAL_SPI_GET_FLAG(sdcd.spi_d,SPI_FLAG_RXNE)) {
-//			SDCD_Receive(&response,1);
-//		}
 	}
 
 	if((response & 0x1F) == 0x05 ){
 		return true;
 	}
+
+	Common_Printf("failed here 2\r\n");
 
 	return false;
 }
@@ -499,26 +504,29 @@ DRESULT SD_disk_write(BYTE pdrv, const BYTE* buff, DWORD sector, UINT count){
 	_sdcd_err err = SDCD_SUCCESS;
 	(void)err;
 	/* pdrv should be 0 */
-	if (pdrv || !count) return RES_PARERR;
+	if (pdrv || !count) {  return RES_PARERR; }
 
 	/* no disk */
-	if (sdcd.mStat & STA_NOINIT) return RES_NOTRDY;
+	if (sdcd.mStat & STA_NOINIT){ return RES_NOTRDY; }
 
 	/* write protection */
-	if (sdcd.mStat & STA_PROTECT) return RES_WRPRT;
+	if (sdcd.mStat & STA_PROTECT){ return RES_WRPRT; }
 
 	/* convert to byte address */
-	if (sdcd.mType == SDC_STANDARD) sector *= 512;
+	if (sdcd.mType == SDC_STANDARD){ sector *= 512; }
 
 	SDCD_SelectChip();
 
-	if (count == 1)
-	{
+	if (count == 1){
+		Common_Printf("Singular \r\n");
+
 		err = SD_SendCmd(SDC_CMD_WRITE_BLOCK, sector,&res);
 		/* WRITE_BLOCK */
-		if (res == 0) //Send CMD 24 WRITE_SINGLE_BLOCK
-			if(SD_TxDataBlock(buff, 0xFE)) //Send datablock stored in the buffer , with CMD 24 token 0xFE
-			count = 0;
+		if (res == 0) { //Send CMD 24 WRITE_SINGLE_BLOCK
+			if(SD_TxDataBlock(buff, 0xFE)){ //Send datablock stored in the buffer , with CMD 24 token 0xFE
+				count = 0;
+			}
+		}
 	}
 	else
 	{
@@ -634,6 +642,7 @@ DRESULT SD_disk_ioctl(BYTE drv, BYTE ctrl, void *buff){
 	uint8_t n, csd[16], *ptr = buff;
 	WORD csize;
 	uint8_t response ;
+	_sdcd_err sdc_err;
 
 	if (drv){
 		return RES_PARERR;
@@ -672,8 +681,10 @@ DRESULT SD_disk_ioctl(BYTE drv, BYTE ctrl, void *buff){
 		switch (ctrl)
 		{
 		case GET_SECTOR_COUNT:
+		{
 			/* SEND_CSD */
 			SD_SendCmd(SDC_CMD_SEND_CSD, 0,&response);
+
 			if (( response == 0) && SD_RxDataBlock((BYTE*) csd, 16))
 			{
 				if ((csd[0] >> 6) == 1)
@@ -692,25 +703,42 @@ DRESULT SD_disk_ioctl(BYTE drv, BYTE ctrl, void *buff){
 				}
 				res = RES_OK;
 			}
-			break;
+		}
+		break;
 		case GET_SECTOR_SIZE:
+		{
 			*(WORD*) buff = 512;
 			res = RES_OK;
-			break;
-		case CTRL_SYNC: //Checks if SDcard is busy or not
-			if (SD_ReadyWait() == 0xFF) res = RES_OK;
-			break;
+		}
+		break;
+		case CTRL_SYNC:
+		{
+			sdc_err =  SD_ReadyWait();
+			if ( sdc_err == SDCD_SUCCESS ){
+				res = RES_OK;
+			}
+		}
+		break;
 		case MMC_GET_CSD: //Get the first 16 most signifcant bytes of the CSD register
 			/* SEND_CSD */
+		{
 			SD_SendCmd(SDC_CMD_SEND_CSD, 0,&response);
-			if (response == 0 && SD_RxDataBlock((BYTE*)ptr, 16)) res = RES_OK;
-			break;
+			if (response == 0 && SD_RxDataBlock((BYTE*)ptr, 16)){
+				res = RES_OK;
+			}
+		}
+		break;
 		case MMC_GET_CID: //Get the first 16 most signifcant bytes of the CID register
 			/* SEND_CID */
+		{
 			SD_SendCmd(SDC_CMD_SEND_CSD, 0,&response);
-			if (response == 0 && SD_RxDataBlock((BYTE*)ptr, 16)) res = RES_OK;
-			break;
+			if (response == 0 && SD_RxDataBlock((BYTE*)ptr, 16)){
+				res = RES_OK;
+			}
+		}
+		break;
 		case MMC_GET_OCR:
+		{
 			/* READ_OCR */
 			SD_SendCmd(SDC_CMD_READ_OCR, 0,&response);
 			if (response == 0)
@@ -721,6 +749,8 @@ DRESULT SD_disk_ioctl(BYTE drv, BYTE ctrl, void *buff){
 				}
 				res = RES_OK;
 			}
+		}
+		break;
 		default:
 			res = RES_PARERR;
 		}
