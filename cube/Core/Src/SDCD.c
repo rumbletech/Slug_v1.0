@@ -17,6 +17,7 @@
 	 lw_gpio mosi; /* SPI MOSI GPIO Device */
 	 lw_gpio miso; /* SPI MISO GPIO Device */
 	 lw_gpio sclk; /* SPI SCLK GPIO Device */
+	 lw_gpio cdet; /* Card Detect pin */
 	 SD_Card_Type mType; /* Driver Detected Memory Type */
 	 DSTATUS mStat; /* Driver Status */
 	 bool pwrf; /* Driver Power Flag */
@@ -103,6 +104,10 @@ static void SDCD_PreInit( void ){
 	lw_RCC_Enable_GPIOA();
 }
 
+extern bool SDCD_isCardInserted ( void ){
+	return !lw_GPIO_Read(&sdcd.cdet);
+}
+
 void SDCD_BSP_Init( void ){
 	sdcd.cs.hwctx = BSP_SDC_SPI_CS_PORT;
 	sdcd.cs.data.pin = BSP_SDC_SPI_CS_PIN;
@@ -127,6 +132,13 @@ void SDCD_BSP_Init( void ){
 	sdcd.miso.data.cfg = LW_GPIO_CFG_INPUT_FLOAT;
 	sdcd.miso.data.mode = LW_GPIO_MODE_INPUT;
 	lw_GPIO_Init(&sdcd.miso);
+
+	sdcd.cdet.hwctx = BSP_SDC_CDET_PORT;
+	sdcd.cdet.data.pin = BSP_SDC_CDET_PIN;
+	sdcd.cdet.data.cfg = LW_GPIO_CFG_INPUT_PULL;
+	sdcd.cdet.data.mode = LW_GPIO_MODE_INPUT;
+	sdcd.cdet.data.pud = LW_GPIO_PUD_PULL_UP;
+	lw_GPIO_Init(&sdcd.cdet);
 
 	sdcd.spi.hwctx = BSP_SDC_SPI;
 	lw_SPI_Init(&sdcd.spi);

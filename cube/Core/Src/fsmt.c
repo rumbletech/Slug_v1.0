@@ -27,14 +27,22 @@ enum e_fsm_state {
 
 };
 
-enum e_fsm_err {
+enum e_err {
 
-	e_fsm_err_ok,
-	e_fsm_err_mount_failed,
-	e_fsm_err_cfg_read_failed,
-	e_fsm_err_open_logs_failed,
-	e_fsm_err_no_active_comm,
-	e_fsm_err_LENGTH,
+	e_err_ok,
+	e_err_mount_failed,
+	e_err_cfg_read_failed,
+	e_err_open_logs_failed,
+	e_err_no_active_comm,
+	e_err_LENGTH,
+};
+
+struct fsm_state_s {
+	uint8_t isToggle;
+	uint8_t togglePeriod;
+	uint8_t colorCycle1;
+	uint8_t colorCycle2;
+
 };
 
 #define CONFIG_FILE_READ_SZ 512U
@@ -43,17 +51,70 @@ enum e_fsm_err {
 #define COM_CHANNEL_POLL_PERIOD_MS 100u
 #define COM_CHANNEL_FLUSH_PERIOD_MS 1000U
 
-static enum e_fsm_state fsm_cs = e_fsm_state_init;
-static enum e_fsm_state fsm_ns = e_fsm_state_init;
-static enum e_fsm_state fsm_ps = e_fsm_state_init;
-static bool fsm_ini = false;
-static uint32_t fsm_cnt = 0u;
-static enum e_fsm_err fsm_err = 0u;
+static struct {
 
-static uint8_t fsm_state_clt[e_fsm_state_LENGTH] = { 125U,125U,125U,125U,125U,125U,125U,125U};
-static uint8_t fsm_state_c1[e_fsm_state_LENGTH] = { COLOR_GREEN,COLOR_GREEN,COLOR_GREEN,COLOR_GREEN,COLOR_GREEN,COLOR_GREEN,COLOR_MAGNETA,COLOR_RED};
-static uint8_t fsm_state_c2[e_fsm_state_LENGTH] = { COLOR_BLUE ,COLOR_BLUE ,COLOR_BLUE ,COLOR_BLUE ,COLOR_BLUE ,COLOR_BLUE ,COLOR_MAGNETA,COLOR_BLACK };
+	 enum e_fsm_state cs;
+	 enum e_fsm_state ns;
+	 enum e_fsm_state ps;
+	 bool ini;
+	 uint32_t cnt;
+	 enum e_err err;
+}fsmt;
 
+
+static struct fsm_state_s fsm_states[e_fsm_state_LENGTH] = {
+
+		[e_fsm_state_init] = {
+				.isToggle = 1U,
+				.togglePeriod = 125U,
+				.colorCycle1 = COLOR_GREEN,
+				.colorCycle2 = COLOR_BLUE
+		},
+		[e_fsm_state_enumerate_hardware] = {
+				.isToggle = 1U,
+				.togglePeriod = 125U,
+				.colorCycle1 = COLOR_GREEN,
+				.colorCycle2 = COLOR_BLUE
+		},
+		[e_fsm_state_load_configuration] = {
+				.isToggle = 1U,
+				.togglePeriod = 125U,
+				.colorCycle1 = COLOR_GREEN,
+				.colorCycle2 = COLOR_BLUE
+		},
+		[e_fsm_state_enum_configuration] = {
+				.isToggle = 1U,
+				.togglePeriod = 125U,
+				.colorCycle1 = COLOR_GREEN,
+				.colorCycle2 = COLOR_BLUE
+		},
+		[e_fsm_state_open_log_files] = {
+				.isToggle = 1U,
+				.togglePeriod = 125U,
+				.colorCycle1 = COLOR_GREEN,
+				.colorCycle2 = COLOR_BLUE
+		},
+		[e_fsm_state_apply_configuration] = {
+				.isToggle = 1U,
+				.togglePeriod = 125U,
+				.colorCycle1 = COLOR_GREEN,
+				.colorCycle2 = COLOR_BLUE
+		},
+		[e_fsm_state_monitor] = {
+				.isToggle = 0U,
+				.togglePeriod = 125U,
+				.colorCycle1 = COLOR_MAGNETA,
+				.colorCycle2 = COLOR_MAGNETA
+		},
+		[e_fsm_state_error] = {
+				.isToggle = 1U,
+				.togglePeriod = 125U,
+				.colorCycle1 = COLOR_RED,
+				.colorCycle2 = COLOR_BLACK
+		}
+
+
+};
 
 static lw_uart_data_t com_channels_cfg[COM_CHANNEL_LENGTH];
 static bool com_channels_cfg_valid[COM_CHANNEL_LENGTH];
@@ -62,8 +123,6 @@ static bool com_channels_valid;
 jsmntok_t json_tokens[JSON_TOK_MAX_SIZE];
 static jsmn_parser json_parser;
 
-
-
 #if _USE_LFN != 0
 static char configJsonFilePath[] = "0:/slug/config.json";
 #else
@@ -71,11 +130,6 @@ static char configJsonFilePath[] = "0:/slug/CONFIG~1.JSO";
 #endif
 static FIL configJsonFile;
 static uint8_t configJsonBuffer[CONFIG_FILE_READ_SZ];
-
-
-
-
-#define LOGF_PATH_MAX_SZ 2U
 
 static char* logFilesPath[COM_CHANNEL_LENGTH] = {
 #if _USE_LFN != 0
@@ -198,7 +252,7 @@ static ProcStatus_t ReadConfig_process( void ){
 	struct diskt_request_s diskRequest;
 	struct diskt_response_s diskResponse;
 
-	if ( fsm_ini == true ){
+	if ( fsmt.ini == true ){
 		stepCnt = 0u;
 	}
 
@@ -266,7 +320,7 @@ static ProcStatus_t OpenLogFiles_process( void ){
 	struct diskt_request_s diskRequest;
 	struct diskt_response_s diskResponse;
 
-	if ( fsm_ini == true ){
+	if ( fsmt.ini == true ){
 		stepCnt = 0u;
 	}
 
@@ -366,7 +420,7 @@ static ProcStatus_t mountSDC_process( void ){
 	struct diskt_response_s diskResponse;
 
 
-	if ( fsm_ini == true ){
+	if ( fsmt.ini == true ){
 		stepCnt = 0u;
 	}
 
@@ -424,8 +478,8 @@ static void fsm_init_h ( void ){
 
 	}
 
-	fsm_ns = e_fsm_state_enumerate_hardware;
-	fsm_err = e_fsm_err_ok;
+	fsmt.ns = e_fsm_state_enumerate_hardware;
+	fsmt.err = e_err_ok;
 
 }
 
@@ -436,16 +490,16 @@ static void fsm_enumerate_hardware_h( void ) {
 	ProcStatus_t ret = mountSDC_process();
 
 	if ( ret == E_OK ){
-		fsm_ns = e_fsm_state_load_configuration;
-		fsm_err = e_fsm_err_ok;
+		fsmt.ns = e_fsm_state_load_configuration;
+		fsmt.err = e_err_ok;
 	}
 	else if ( ret == E_PENDING ){
-		fsm_ns = e_fsm_state_enumerate_hardware;
-		fsm_err = e_fsm_err_ok;
+		fsmt.ns = e_fsm_state_enumerate_hardware;
+		fsmt.err = e_err_ok;
 	}
 	else{
-		fsm_ns = e_fsm_state_error;
-		fsm_err = e_fsm_err_mount_failed;
+		fsmt.ns = e_fsm_state_error;
+		fsmt.err = e_err_mount_failed;
 
 	}
 
@@ -458,17 +512,16 @@ static void fsm_load_configuration_h( void ){
 	ProcStatus_t ret = 	ReadConfig_process();
 
 	if ( ret == E_OK ){
-		fsm_ns = e_fsm_state_enum_configuration;
-		fsm_err = e_fsm_err_ok;
+		fsmt.ns = e_fsm_state_enum_configuration;
+		fsmt.err = e_err_ok;
 	}
 	else if ( ret == E_PENDING ){
-		fsm_ns = e_fsm_state_load_configuration;
-		fsm_err = e_fsm_err_ok;
+		fsmt.ns = e_fsm_state_load_configuration;
+		fsmt.err = e_err_ok;
 	}
 	else{
-		fsm_ns = e_fsm_state_error;
-		fsm_err = e_fsm_err_cfg_read_failed;
-
+		fsmt.ns = e_fsm_state_error;
+		fsmt.err = e_err_cfg_read_failed;
 	}
 }
 
@@ -505,12 +558,12 @@ static void fsm_enum_configuration_h( void ){
 
 
 	if ( com_channels_valid ){
-		fsm_ns = e_fsm_state_open_log_files;
-		fsm_err = e_fsm_err_ok;
+		fsmt.ns = e_fsm_state_open_log_files;
+		fsmt.err = e_err_ok;
 	}
 	else{
-		fsm_ns = e_fsm_state_error;
-		fsm_err = e_fsm_err_no_active_comm;
+		fsmt.ns = e_fsm_state_error;
+		fsmt.err = e_err_no_active_comm;
 	}
 }
 
@@ -521,16 +574,16 @@ static void fsm_open_logs_h ( void ){
 	ProcStatus_t ret = 	OpenLogFiles_process();
 
 	if ( ret == E_OK ){
-		fsm_ns = e_fsm_state_apply_configuration;
-		fsm_err = e_fsm_err_ok;
+		fsmt.ns = e_fsm_state_apply_configuration;
+		fsmt.err = e_err_ok;
 	}
 	else if ( ret == E_PENDING ){
-		fsm_ns = e_fsm_state_open_log_files;
-		fsm_err = e_fsm_err_ok;
+		fsmt.ns = e_fsm_state_open_log_files;
+		fsmt.err = e_err_ok;
 	}
 	else{
-		fsm_ns = e_fsm_state_error;
-		fsm_err = e_fsm_err_open_logs_failed;
+		fsmt.ns = e_fsm_state_error;
+		fsmt.err = e_err_open_logs_failed;
 	}
 
 }
@@ -549,12 +602,12 @@ static void fsm_apply_configuration_h( void ) {
 	}
 
 	if ( com_channels_valid ){
-		fsm_ns = e_fsm_state_monitor;
-		fsm_err = e_fsm_err_ok;
+		fsmt.ns = e_fsm_state_monitor;
+		fsmt.err = e_err_ok;
 	}
 	else{
-		fsm_ns = e_fsm_state_error;
-		fsm_err = e_fsm_err_no_active_comm;
+		fsmt.ns = e_fsm_state_error;
+		fsmt.err = e_err_no_active_comm;
 	}
 }
 
@@ -569,7 +622,7 @@ static void fsm_monitor_h( void ) {
 	DISKT_GetResponse(&diskResponse);
 
 	/* Write to Pipe  */
-	if ( fsm_cnt%(COM_CHANNEL_POLL_PERIOD_MS/FSM_CYCLE_DURATION_MS) == 0u ){
+	if ( fsmt.cnt%(COM_CHANNEL_POLL_PERIOD_MS/FSM_CYCLE_DURATION_MS) == 0u ){
 
 		for ( uint8_t i = 0 ; i < COM_CHANNEL_LENGTH ; i++ ){
 			if ( com_channels_cfg_valid[i] == 1u ) {
@@ -589,7 +642,7 @@ static void fsm_monitor_h( void ) {
 
 	/* Flush Pipe  */
 
-	if ( fsm_cnt%((COM_CHANNEL_FLUSH_PERIOD_MS)/FSM_CYCLE_DURATION_MS) == 0u ){
+	if ( fsmt.cnt%((COM_CHANNEL_FLUSH_PERIOD_MS)/FSM_CYCLE_DURATION_MS) == 0u ){
 
 		for ( uint8_t i = 0 ; i < COM_CHANNEL_LENGTH ; i++ ){
 			if ( com_channels_cfg_valid[i] == 1u ) {
@@ -603,8 +656,8 @@ static void fsm_monitor_h( void ) {
 	}
 
 
-	fsm_ns = e_fsm_state_monitor;
-	fsm_err = e_fsm_err_ok;
+	fsmt.ns = e_fsm_state_monitor;
+	fsmt.err = e_err_ok;
 
 }
 
@@ -617,49 +670,65 @@ static void fsm_default_h ( void ){
 
 static void fsm_illuminate_state( void ){
 
-	if ( fsm_cnt%(2u*(fsm_state_clt[fsm_cs]/FSM_CYCLE_DURATION_MS)) == 0U ){
-		RGB_Write(fsm_state_c1[fsm_cs]);
+	if ( fsmt.cnt%(2u*(fsm_states[fsmt.cs].togglePeriod/FSM_CYCLE_DURATION_MS)) == 0U ){
+		RGB_Write(fsm_states[fsmt.cs].colorCycle1);
 	}
-	else if ( fsm_cnt%(1u*(fsm_state_clt[fsm_cs]/FSM_CYCLE_DURATION_MS)) == 0U ){
-		RGB_Write(fsm_state_c2[fsm_cs]);
+	else if ( fsmt.cnt%(1u*(fsm_states[fsmt.cs].togglePeriod/FSM_CYCLE_DURATION_MS)) == 0U ){
+		RGB_Write(fsm_states[fsmt.cs].colorCycle2);
 	}
 
 }
 
 static void fsm_err_h ( void ){
-	Common_Printf("FSM_STATE_ERR\r\n");
+	Common_Printf("FSM_STATE_ERR[%d]\r\n",fsmt.err);
 
-	/* Handle Errors */
-	switch( fsm_err ){
+	static uint32_t err_cnt = 0u;
+
+	if ( fsmt.ini == 1u ){
+		err_cnt = 0u;
+	}
+	if ( err_cnt < 50u ){
+		fsmt.ns = e_fsm_state_error;
+		err_cnt++;
+		return;
+
+	}
+	switch( fsmt.err ){
+
+	case e_err_mount_failed:
+		bool cardStatus = SDCD_isCardInserted();
+		if ( cardStatus == true ){
+			fsmt.ns = e_fsm_state_enumerate_hardware;
+			fsmt.err = e_err_ok;
+		}
+		break;
 	default:
+		fsmt.ns = e_fsm_state_error;
 		break;
 	}
-
-	fsm_ns = e_fsm_state_error;
-
 }
 
 extern void fsm_init( void ){
 	jsmn_init(&json_parser); /* Initialize jsmn jason parser */
 
-	fsm_cs = e_fsm_state_init;
-	fsm_ns = e_fsm_state_init;
-	fsm_ps = e_fsm_state_init;
-	fsm_ini = false;
-	fsm_cnt = 0u;
-	fsm_err = e_fsm_err_ok;
+	fsmt.cs = e_fsm_state_init;
+	fsmt.ns = e_fsm_state_init;
+	fsmt.ps = e_fsm_state_init;
+	fsmt.ini = false;
+	fsmt.cnt = 0u;
+	fsmt.err = e_err_ok;
 }
 
 extern void fsm ( void ){
 
-	fsm_ps = fsm_cs;
-	fsm_cs = fsm_ns ;
+	fsmt.ps = fsmt.cs;
+	fsmt.cs = fsmt.ns ;
 
-	fsm_ini =  fsm_cs != fsm_ps;
+	fsmt.ini =  fsmt.cs != fsmt.ps;
 
 	fsm_illuminate_state();
 
-	switch(fsm_cs){
+	switch(fsmt.cs){
 
 	case e_fsm_state_init:
 		fsm_init_h();
@@ -690,7 +759,6 @@ extern void fsm ( void ){
 	break;
 	}
 
-	fsm_cnt++;
-
+	fsmt.cnt++;
 
 }

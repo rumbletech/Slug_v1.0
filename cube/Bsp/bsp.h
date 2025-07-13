@@ -31,6 +31,9 @@
 #define BSP_SDC_SPI_CS_PIN 4u
 #define BSP_SDC_SPI_CS_PORT GPIOA
 
+#define BSP_SDC_CDET_PIN 13u
+#define BSP_SDC_CDET_PORT GPIOB
+
 #define BSP_SDC_SPI SPI1
 
 #define BSP_CH1_UART USART3

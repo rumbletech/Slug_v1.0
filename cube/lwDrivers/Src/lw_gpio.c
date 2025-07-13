@@ -75,6 +75,16 @@ void lw_GPIO_Init(lw_gpio* inst) {
     // Combine CNF and MODE bits (CNF[1:0] at bits 3:2, MODE[1:0] at bits 1:0)
     uint32_t config = (cnf_bits << 2U) | mode_bits;
 
+	/* Configure PULL */
+    if ( cnf_bits == 0x02U && mode_bits == 0x00U ){
+    	if ( inst->data.pud == LW_GPIO_PUD_PULL_UP ){
+    		inst->hwctx->ODR |= ( 1UL << inst->data.pin );
+    	}
+    	else{
+    		inst->hwctx->ODR &= ~( 1UL << inst->data.pin );
+    	}
+    }
+
     // Apply configuration to CRL or CRH
     if (inst->data.pin < 8U) {
         inst->hwctx->CRL |= (config << shift);
@@ -94,4 +104,12 @@ void lw_GPIO_Write(lw_gpio* inst , uint8_t state) {
 	else{
 	    inst->hwctx->BSRR = (1U << (inst->data.pin + 16)); // Clear pin using BSRR high-order bits.
 	}
+}
+
+/**
+ * @brief Reads a GPIO.
+ * @param inst Pointer to lw_gpio structure containing GPIO port and pin number.
+ */
+bool lw_GPIO_Read(lw_gpio* inst) {
+	return (bool)( inst->hwctx->IDR & ( 1u << inst->data.pin ));
 }

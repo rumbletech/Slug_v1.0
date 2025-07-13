@@ -33,11 +33,17 @@ typedef enum {
     LW_GPIO_MODE_50MHZ               // Output mode, 50 MHz
 } lw_gpio_mode_t;
 
+typedef enum {
+	LW_GPIO_PUD_PULL_DOWN,
+	LW_GPIO_PUD_PULL_UP,
+} lw_gpio_pud_t;
+
 // Structure for GPIO configuration data
 typedef struct {
     uint8_t pin;                      // Pin number (0-15)
     lw_gpio_cfg_t cfg;              // GPIO mode (CNF bits)
     lw_gpio_mode_t mode;            // GPIO speed (MODE bits)
+    lw_gpio_pud_t pud;
 } lw_gpio_data_t;
 
 typedef struct lw_gpio_s {
@@ -50,5 +56,6 @@ typedef struct lw_gpio_s {
 
 void lw_GPIO_Init(lw_gpio* inst);
 void lw_GPIO_Write(lw_gpio* inst , uint8_t state);
+bool lw_GPIO_Read(lw_gpio* inst);
 
 #endif /* INC_LW_GPIO_H_ */

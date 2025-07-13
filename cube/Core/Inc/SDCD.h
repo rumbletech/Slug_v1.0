@@ -57,6 +57,8 @@ typedef enum {
 typedef uint16_t _sdcd_err;
 
 void SDCD_Init ( void );
+bool SDCD_isCardInserted( void );
+
 
 /* Fatfs Interface Functions */
 DSTATUS SD_disk_init(BYTE drv);

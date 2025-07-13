@@ -15,14 +15,9 @@
   *
   ******************************************************************************
   */
-/* USER CODE END Header */
-/* Includes ------------------------------------------------------------------*/
-#include <com_channel.h>
+
 #include "main.h"
 #include "fatfs.h"
-
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
 #include "common.h"
 #include "SDCD.h"
 #include "rgb.h"
@@ -34,44 +29,6 @@
 #include "task.h"
 #include "diskt.h"
 #include "fsmt.h"
-#include <string.h>
-
-/* USER CODE END Includes */
-
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
-
-/* USER CODE BEGIN PV */
-
-/* USER CODE END PV */
-
-/* Private function prototypes -----------------------------------------------*/
-
-/* USER CODE BEGIN PFP */
-
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-
-
-static const uint32_t supported_baud_rates[] = {1200,2400,4800,9600,14400,19200,28800,38400,57600,115200,128000,230400,250000,460800,500000};
-
-
 
 #define QUEUE_DISK_REQ_ITEM_SIZE (sizeof(struct diskt_request_s))
 #define QUEUE_DISK_REQ_LENGTH 6U
@@ -101,73 +58,6 @@ static StackType_t taskStack_FSMT [ TASK_FSMT_STACK_SIZE ];
 static StaticTask_t taskBuffer_FSMT;
 
 
-
-
-
-
-//static bool assertBaud( uint32_t baudRate ){
-//	bool ret = false;
-//	for ( uint32_t i = 0 ; i < sizeof(supported_baud_rates)/sizeof(uint32_t) ;i++ ){
-//		if ( baudRate == supported_baud_rates[i]){
-//			ret = true;
-//			break;
-//		}
-//	}
-//	return ret;
-//}
-
-//static bool assertConfiguration( lw_uart_data_t cfg ){
-//
-//	if ( !assertBaud(cfg.baudRate)  ){
-//		return false;
-//	}
-//
-//	if ( cfg.parity >= e_uch_parity_MAX_ ){
-//		return false;
-//	}
-//
-//	if ( cfg.nStopBits >= e_uch_nStopbits_MAX_ ){
-//		return false;
-//	}
-//
-//	if ( cfg.nDataBits >= e_uch_nDatabits_MAX_ ){
-//		return false;
-//	}
-//
-//	return true;
-//}
-
-extern volatile uint32_t uart_count;
-#define UCH_CONFIG_MAX_TOKEN_SIZE 64u
-
-
-/* Init json parser */
-//	jsmn_init(&uch.json.parser);
-
-
-
-
-
-
-
-static void TEST_SDCARD( void ){
-	static uint32_t index = 0u;
-	static uint32_t failCount = 0u;
-
-	BYTE sec[512u];
-	failCount += (uint32_t)SD_disk_read(0, &sec[0u], index+8192 , 1);
-	Common_Printf("Sector %d = \r\n" , index);
-	Common_Printf("Total Fail %d = \r\n" , failCount);
-
-	index++;
-}
-
-static void TEST_RGB ( void ){
-
-      static uint32_t color = 0u;
-	  RGB_Write(color++);
-}
-
 void vApplicationTickHook ( void ){
 	lw_Sys_SysTick_Handler();
 }
@@ -190,6 +80,8 @@ extern void SystemInit ( void ){
 	/* AIFO and RE-MAP */
 	lw_Sys_Disable_JTAG(); /* Remap JTAG to SWD */
 	lw_Sys_ReMap_USART1(); /* Remap USART1 */
+
+	  __disable_irq();
 
 	return;
 }
@@ -225,24 +117,13 @@ void vTask_FSMT ( void *pvParameters ){
 int main(void)
 {
 
-  /* USER CODE BEGIN 1 */
-  (void)(TEST_SDCARD);
-  /* USER CODE END 1 */
-
-  /* MCU Configuration--------------------------------------------------------*/
-
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  SystemInit();
-
-  __disable_irq();
-
+  SystemInit();  /* Init System Clock and NVIC  */
   RGB_Init(); /* Initializes RGB Indicator Module */
   SDCD_Init(); /* Initializes SDC SPI Module */
   Com_Channel_Init(); /* Initializes Com Channels , as well as debug channel if enabled */
   MX_FATFS_Init(); /* Link FatFS Driver */
 
 
-  /* Create Queues */
 
   queue_disk_req = xQueueCreateStatic( QUEUE_DISK_REQ_LENGTH,QUEUE_DISK_REQ_ITEM_SIZE,queue_disk_req_buff,&queue_disk_req_static );
   queue_disk_resp = xQueueCreateStatic( QUEUE_DISK_RESP_LENGTH,QUEUE_DISK_RESP_ITEM_SIZE,queue_disk_resp_buff,&queue_disk_resp_static );
@@ -279,29 +160,10 @@ int main(void)
   */
 void Error_Handler(void)
 {
-  /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
-  Common_Printf("FUCK MY ASS \r\n");
+  Common_Printf("Error_Handler\r\n");
   while (1)
   {
   }
-  /* USER CODE END Error_Handler_Debug */
 }
 
-#ifdef  USE_FULL_ASSERT
-/**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
-void assert_failed(uint8_t *file, uint32_t line)
-{
-  /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-  /* USER CODE END 6 */
-}
-#endif /* USE_FULL_ASSERT */
